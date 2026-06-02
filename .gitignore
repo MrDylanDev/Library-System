@@ -1,0 +1,7 @@
+# Ignorar archivos de SDD y locales
+openspec/
+*.skill
+*.task
+.idea/
+target/
+.DS_Store
