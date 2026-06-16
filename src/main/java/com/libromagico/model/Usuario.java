@@ -39,11 +39,3 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     private EstadoUsuario estado = EstadoUsuario.ACTIVO;
 }
-
-public enum RolUsuario {
-    USER, LIBRARIAN, ADMIN
-}
-
-public enum EstadoUsuario {
-    ACTIVO, BLOQUEADO
-}

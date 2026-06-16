@@ -24,7 +24,3 @@ public class Multa {
     @Enumerated(EnumType.STRING)
     private EstadoMulta estado = EstadoMulta.PENDIENTE;
 }
-
-public enum EstadoMulta {
-    PENDIENTE, PAGADO
-}

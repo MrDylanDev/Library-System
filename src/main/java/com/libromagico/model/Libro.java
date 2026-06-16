@@ -35,7 +35,3 @@ public class Libro {
     @Enumerated(EnumType.STRING)
     private EstadoLibro estado = EstadoLibro.DISPONIBLE;
 }
-
-public enum EstadoLibro {
-    DISPONIBLE, PRESTADO, RESERVADO, PERDIDO
-}

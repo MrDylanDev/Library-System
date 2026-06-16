@@ -30,7 +30,3 @@ public class Prestamo {
     @Enumerated(EnumType.STRING)
     private EstadoPrestamo estado = EstadoPrestamo.ACTIVO;
 }
-
-public enum EstadoPrestamo {
-    ACTIVO, DEVUELTO, ATRASADO
-}

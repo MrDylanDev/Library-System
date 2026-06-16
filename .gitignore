@@ -5,3 +5,4 @@ openspec/
 .idea/
 target/
 .DS_Store
+.atl/
