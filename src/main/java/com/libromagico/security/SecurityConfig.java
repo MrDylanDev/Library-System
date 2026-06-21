@@ -29,6 +29,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/", "/index.html", "/css/**", "/js/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/libros/**").hasAnyRole("USER", "LIBRARIAN", "ADMIN")
                 .requestMatchers("/api/libros/**").hasAnyRole("LIBRARIAN", "ADMIN")
                 .requestMatchers("/api/usuarios/**").hasAnyRole("LIBRARIAN", "ADMIN")
