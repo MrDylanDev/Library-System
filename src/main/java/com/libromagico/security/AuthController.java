@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +37,7 @@ public class AuthController {
         var usuario = usuarioRepository.findByEmail(request.email()).orElseThrow();
         String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getRol().name());
 
-        return ResponseEntity.ok(new AuthResponse(token, usuario.getEmail(), usuario.getRol().name()));
+        return ResponseEntity.ok(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
     }
 
     @PostMapping("/register")
@@ -59,6 +61,17 @@ public class AuthController {
 
         String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getRol().name());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthResponse(token, usuario.getEmail(), usuario.getRol().name()));
+                .body(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> me(@AuthenticationPrincipal UserDetails userDetails) {
+        var usuario = usuarioRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+        return ResponseEntity.ok(Map.of(
+                "id", usuario.getId(),
+                "nombre", usuario.getNombre(),
+                "email", usuario.getEmail(),
+                "rol", usuario.getRol().name()
+        ));
     }
 }

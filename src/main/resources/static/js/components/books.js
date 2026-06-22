@@ -67,11 +67,7 @@ function BookCard(book) {
       onClick: async () => {
         try {
           const user = Store.get('user');
-          const email = user?.email;
-          const res = await api.get(`/usuarios`);
-          const usuario = res.find(u => u.email === email);
-          if (!usuario) return alert('No se encontró tu usuario');
-          await api.post('/prestamos', { usuarioId: usuario.id, libroIsbn: book.isbn });
+          await api.post('/prestamos', { usuarioId: user.id, libroIsbn: book.isbn });
           Router.navigate(`/libros/${book.isbn}`);
         } catch (err) {
           alert(err.message);
@@ -134,10 +130,7 @@ async function BookDetailPage(params) {
         onClick: async () => {
           try {
             const user = Store.get('user');
-            const usuarios = await api.get('/usuarios');
-            const usuario = usuarios.find(u => u.email === user.email);
-            if (!usuario) return alert('No se encontró tu usuario');
-            await api.post('/prestamos', { usuarioId: usuario.id, libroIsbn: book.isbn });
+            await api.post('/prestamos', { usuarioId: user.id, libroIsbn: book.isbn });
             Router.navigate('/mis-prestamos');
           } catch (err) { alert(err.message); }
         },

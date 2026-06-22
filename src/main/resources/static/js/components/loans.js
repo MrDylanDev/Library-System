@@ -15,14 +15,7 @@ async function MyLoansPage() {
     tableContainer.innerHTML = '';
     try {
       const user = Store.get('user');
-      const usuarios = await api.get('/usuarios');
-      const usuario = usuarios.find(u => u.email === user.email);
-      if (!usuario) {
-        tableContainer.appendChild(h('div', { className: 'empty-state' }, 'Usuario no encontrado.'));
-        return;
-      }
-
-      const loans = await api.get(`/prestamos/usuarios/${usuario.id}`);
+      const loans = await api.get(`/prestamos/usuarios/${user.id}`);
       if (isEmpty(loans)) {
         tableContainer.appendChild(h('div', { className: 'empty-state' }, 'No tenés préstamos.'));
         return;
