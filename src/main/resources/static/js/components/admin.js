@@ -11,6 +11,8 @@ async function AdminUsersPage() {
   const tableContainer = h('div');
   card.appendChild(tableContainer);
 
+  const currentUser = Store.get('user');
+
   async function loadUsers() {
     tableContainer.innerHTML = '';
     try {
@@ -22,7 +24,7 @@ async function AdminUsersPage() {
 
       const table = h('table');
       const thead = h('tr');
-      ['ID', 'Nombre', 'Email', 'DNI', 'Rol', 'Estado'].forEach(th =>
+      ['ID', 'Nombre', 'Email', 'DNI', 'Rol', 'Estado', 'Acciones'].forEach(th =>
         thead.appendChild(h('th', {}, th)));
       table.appendChild(thead);
 
@@ -32,8 +34,38 @@ async function AdminUsersPage() {
         tr.appendChild(h('td', {}, user.nombre));
         tr.appendChild(h('td', {}, user.email));
         tr.appendChild(h('td', {}, user.dni || '-'));
-        tr.appendChild(h('td', {}, badge(user.rol, user.rol === 'ADMIN' ? 'red' : 'blue')));
+        tr.appendChild(h('td', {}, badge(user.rol, user.rol === 'ADMIN' ? 'red' : user.rol === 'LIBRARIAN' ? 'purple' : 'blue')));
         tr.appendChild(h('td', {}, badge(user.estado, user.estado === 'ACTIVO' ? 'green' : 'red')));
+
+        const actionsTd = h('td');
+
+        if (currentUser && currentUser.id !== user.id) {
+          const nextRol = user.rol === 'USER' ? 'LIBRARIAN' : user.rol === 'LIBRARIAN' ? 'ADMIN' : 'USER';
+          actionsTd.appendChild(h('button', {
+            className: 'btn btn-outline btn-sm',
+            style: { marginRight: '4px' },
+            onClick: async () => {
+              try {
+                await api.put(`/admin/usuarios/${user.id}/rol`, { rol: nextRol });
+                loadUsers();
+              } catch (err) { render(alertContainer, showAlert(err.message, 'error')); }
+            },
+          }, 'Rol: ' + nextRol));
+
+          const nuevoEstado = user.estado === 'ACTIVO' ? 'BLOQUEADO' : 'ACTIVO';
+          const btnClass = user.estado === 'ACTIVO' ? 'btn-danger' : 'btn-success';
+          actionsTd.appendChild(h('button', {
+            className: `btn ${btnClass} btn-sm`,
+            onClick: async () => {
+              try {
+                await api.put(`/admin/usuarios/${user.id}/estado`, { estado: nuevoEstado });
+                loadUsers();
+              } catch (err) { render(alertContainer, showAlert(err.message, 'error')); }
+            },
+          }, user.estado === 'ACTIVO' ? 'Bloquear' : 'Desbloquear'));
+        }
+
+        tr.appendChild(actionsTd);
         table.appendChild(tr);
       });
 
@@ -44,6 +76,70 @@ async function AdminUsersPage() {
   }
 
   loadUsers();
+  container.appendChild(card);
+  return container;
+}
+
+async function AdminMultasPage() {
+  const container = h('div');
+  const alertContainer = h('div');
+
+  const card = h('div', { className: 'card' });
+  const header = h('div', { className: 'card-header' });
+  header.appendChild(h('h2', {}, 'Multas'));
+  card.appendChild(header);
+  card.appendChild(alertContainer);
+
+  const tableContainer = h('div');
+  card.appendChild(tableContainer);
+
+  async function loadMultas() {
+    tableContainer.innerHTML = '';
+    try {
+      const multas = await api.get('/admin/multas');
+      if (isEmpty(multas)) {
+        tableContainer.appendChild(h('div', { className: 'empty-state' }, 'No hay multas registradas.'));
+        return;
+      }
+
+      const table = h('table');
+      const thead = h('tr');
+      ['ID', 'Usuario', 'Libro', 'Monto', 'Estado', 'Acción'].forEach(th =>
+        thead.appendChild(h('th', {}, th)));
+      table.appendChild(thead);
+
+      multas.forEach(multa => {
+        const tr = h('tr');
+        tr.appendChild(h('td', {}, String(multa.id)));
+        tr.appendChild(h('td', {}, multa.prestamo?.usuario?.nombre || '-'));
+        tr.appendChild(h('td', {}, multa.prestamo?.libro?.titulo || '-'));
+        tr.appendChild(h('td', {}, '$' + (multa.monto || '0')));
+        tr.appendChild(h('td', {}, badge(multa.estado === 'PENDIENTE' ? 'Pendiente' : 'Pagado',
+          multa.estado === 'PENDIENTE' ? 'yellow' : 'green')));
+
+        const actionTd = h('td');
+        if (multa.estado === 'PENDIENTE') {
+          actionTd.appendChild(h('button', {
+            className: 'btn btn-success btn-sm',
+            onClick: async () => {
+              try {
+                await api.put(`/admin/multas/${multa.id}/pagar`);
+                loadMultas();
+              } catch (err) { render(alertContainer, showAlert(err.message, 'error')); }
+            },
+          }, 'Pagar'));
+        }
+        tr.appendChild(actionTd);
+        table.appendChild(tr);
+      });
+
+      tableContainer.appendChild(table);
+    } catch (err) {
+      render(alertContainer, showAlert(err.message, 'error'));
+    }
+  }
+
+  loadMultas();
   container.appendChild(card);
   return container;
 }

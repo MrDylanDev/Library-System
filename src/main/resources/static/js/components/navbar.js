@@ -15,6 +15,7 @@ function Navbar() {
       links.appendChild(h('a', { href: '#/mis-prestamos' }, 'Mis Préstamos'));
       if (isAdmin) {
         links.appendChild(h('a', { href: '#/admin/usuarios' }, 'Usuarios'));
+        links.appendChild(h('a', { href: '#/admin/multas' }, 'Multas'));
         links.appendChild(h('a', { href: '#/admin/libros/nuevo' }, 'Nuevo Libro'));
       }
       links.appendChild(h('span', { className: 'user-badge' }, user?.email || ''));
