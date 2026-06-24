@@ -23,6 +23,50 @@ public class EmailService {
     private boolean mailEnabled;
 
     @Async
+    public void enviarResetPassword(String email, String nombre, String resetLink) {
+        if (!mailEnabled) {
+            log.info("Email deshabilitado. Reset token para {}: {}", email, resetLink);
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(email);
+            helper.setSubject("LibroMágico — Recuperación de contraseña");
+            helper.setText(buildResetHtml(nombre, resetLink), true);
+
+            mailSender.send(message);
+            log.info("Email de recuperación enviado a {}", email);
+        } catch (MessagingException e) {
+            log.error("Error al enviar email de recuperación a {}: {}", email, e.getMessage());
+        }
+    }
+
+    private String buildResetHtml(String nombre, String resetLink) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"></head>
+                <body style="font-family: Arial, sans-serif; color: #333; max-width: 480px; margin: 0 auto;">
+                    <div style="background: #92400e; padding: 24px; text-align: center;">
+                        <h1 style="color: #fff; margin: 0;">LibroMágico</h1>
+                    </div>
+                    <div style="padding: 32px 24px; background: #fff;">
+                        <h2 style="color: #92400e;">Recuperá tu contraseña</h2>
+                        <p>Hola <strong>%s</strong>, recibimos una solicitud para restablecer tu contraseña.</p>
+                        <p>Hacé clic en el botón de abajo para crear una nueva contraseña. Este enlace vence en 1 hora.</p>
+                        <div style="text-align: center; margin: 32px 0;">
+                            <a href="%s" style="background: #92400e; color: #fff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-size: 16px; display: inline-block;">Restablecer contraseña</a>
+                        </div>
+                        <p style="color: #6b7280; font-size: 14px;">Si no solicitaste este cambio, ignorá este mensaje. Tu contraseña actual seguirá funcionando.</p>
+                    </div>
+                </body>
+                </html>
+                """.formatted(nombre, resetLink);
+    }
+
+    @Async
     public void notificarDevolucionTardia(String email, String tituloLibro, BigDecimal monto) {
         if (!mailEnabled) {
             log.info("Email deshabilitado. Notificación pendiente para {}: devolución tardía de '{}', multa ${}",

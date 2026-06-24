@@ -34,6 +34,13 @@ function App() {
 
   Router.register('/', async () => render(content, LandingPage()));
 
+  Router.register('/forgot-password', async () => {
+    render(content, ForgotPasswordPage());
+  });
+  Router.register('/reset-password/:token', async (params) => {
+    render(content, ResetPasswordPage(params));
+  });
+
   Router.register('/catalogo', async () => {
     const wrapper = h('div', { className: 'container' });
     render(content, null);

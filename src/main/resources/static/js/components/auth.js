@@ -39,6 +39,9 @@ function LoginPage() {
     h('span', {}, '¿No tenés cuenta? '),
     h('a', { href: '#/registro', onClick: (e) => { e.preventDefault(); Router.navigate('/registro'); } }, 'Registrate')
   ));
+  form.appendChild(h('div', { className: 'form-footer', style: { marginTop: '0.5rem' } },
+    h('a', { href: '#/forgot-password', onClick: (e) => { e.preventDefault(); Router.navigate('/forgot-password'); } }, '¿Olvidaste tu contraseña?')
+  ));
 
   return form;
 }
@@ -103,6 +106,91 @@ function RegisterPage() {
     h('span', {}, '¿Ya tenés cuenta? '),
     h('a', { href: '#/login', onClick: (e) => { e.preventDefault(); Router.navigate('/login'); } }, 'Iniciá sesión')
   ));
+
+  return form;
+}
+
+function ForgotPasswordPage() {
+  const form = h('div', { className: 'auth-form' });
+
+  const title = h('h1', {}, 'Recuperar Contraseña');
+  const subtitle = h('p', { style: { color: '#6b7280', marginBottom: '1.5rem' } }, 'Ingresá tu email y te enviaremos un enlace para restablecer tu contraseña.');
+  const alertContainer = h('div');
+  const emailInput = h('input', { type: 'email', placeholder: 'correo@ejemplo.com', required: true });
+  const submitBtn = h('button', { className: 'btn btn-primary', style: { width: '100%' } }, 'Enviar enlace');
+
+  submitBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+    try {
+      const data = await api.post('/auth/forgot-password', { email: emailInput.value });
+      render(alertContainer, showAlert(data.message, 'success'));
+      submitBtn.style.display = 'none';
+      emailInput.disabled = true;
+    } catch (err) {
+      render(alertContainer, showAlert(err.message, 'error'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar enlace';
+    }
+  });
+
+  form.appendChild(title);
+  form.appendChild(subtitle);
+  form.appendChild(alertContainer);
+  form.appendChild(h('div', { className: 'form-group' }, h('label', {}, 'Email'), emailInput));
+  form.appendChild(submitBtn);
+  form.appendChild(h('div', { className: 'form-footer' },
+    h('a', { href: '#/login', onClick: (e) => { e.preventDefault(); Router.navigate('/login'); } }, 'Volver al inicio de sesión')
+  ));
+
+  return form;
+}
+
+function ResetPasswordPage(params) {
+  const form = h('div', { className: 'auth-form' });
+  const token = params.token;
+
+  const title = h('h1', {}, 'Nueva Contraseña');
+  const alertContainer = h('div');
+  const passInput = h('input', { type: 'password', placeholder: 'Nueva contraseña (mín 6 caracteres)', required: true, minLength: '6' });
+  const confirmInput = h('input', { type: 'password', placeholder: 'Confirmar contraseña', required: true });
+  const submitBtn = h('button', { className: 'btn btn-primary', style: { width: '100%' } }, 'Actualizar contraseña');
+
+  submitBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (passInput.value !== confirmInput.value) {
+      render(alertContainer, showAlert('Las contraseñas no coinciden', 'error'));
+      return;
+    }
+    if (passInput.value.length < 6) {
+      render(alertContainer, showAlert('La contraseña debe tener al menos 6 caracteres', 'error'));
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Actualizando...';
+    try {
+      const data = await api.post('/auth/reset-password', {
+        token: token,
+        newPassword: passInput.value,
+      });
+      render(alertContainer, showAlert(data.message, 'success'));
+      submitBtn.style.display = 'none';
+      passInput.disabled = true;
+      confirmInput.disabled = true;
+      setTimeout(() => Router.navigate('/login'), 2000);
+    } catch (err) {
+      render(alertContainer, showAlert(err.message, 'error'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Actualizar contraseña';
+    }
+  });
+
+  form.appendChild(title);
+  form.appendChild(alertContainer);
+  form.appendChild(h('div', { className: 'form-group' }, h('label', {}, 'Nueva contraseña'), passInput));
+  form.appendChild(h('div', { className: 'form-group' }, h('label', {}, 'Confirmar contraseña'), confirmInput));
+  form.appendChild(submitBtn);
 
   return form;
 }

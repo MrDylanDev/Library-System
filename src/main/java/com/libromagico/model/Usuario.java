@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Setter
@@ -38,4 +40,8 @@ public class Usuario {
 
     @Enumerated(EnumType.STRING)
     private EstadoUsuario estado = EstadoUsuario.ACTIVO;
+
+    private String resetToken;
+
+    private LocalDateTime resetTokenExpiry;
 }

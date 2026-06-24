@@ -1,13 +1,17 @@
 package com.libromagico.security;
 
 import com.libromagico.dto.AuthResponse;
+import com.libromagico.dto.ForgotPasswordRequest;
 import com.libromagico.dto.LoginRequest;
 import com.libromagico.dto.RegisterRequest;
+import com.libromagico.dto.ResetPasswordRequest;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
 import com.libromagico.repository.UsuarioRepository;
+import com.libromagico.service.EmailService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,7 +21,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,6 +34,10 @@ public class AuthController {
     private final JwtTokenProvider tokenProvider;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -73,5 +83,41 @@ public class AuthController {
                 "email", usuario.getEmail(),
                 "rol", usuario.getRol().name()
         ));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        var usuario = usuarioRepository.findByEmail(request.email());
+        if (usuario.isEmpty()) {
+            return ResponseEntity.ok(Map.of("message", "Si el email existe, recibirás un enlace de recuperación"));
+        }
+
+        var u = usuario.get();
+        String token = UUID.randomUUID().toString();
+        u.setResetToken(token);
+        u.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
+        usuarioRepository.save(u);
+
+        String resetLink = baseUrl + "/#/reset-password/" + token;
+        emailService.enviarResetPassword(u.getEmail(), u.getNombre(), resetLink);
+
+        return ResponseEntity.ok(Map.of("message", "Si el email existe, recibirás un enlace de recuperación"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        var usuario = usuarioRepository.findByResetToken(request.token())
+                .orElse(null);
+
+        if (usuario == null || usuario.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token inválido o expirado"));
+        }
+
+        usuario.setContrasena(passwordEncoder.encode(request.newPassword()));
+        usuario.setResetToken(null);
+        usuario.setResetTokenExpiry(null);
+        usuarioRepository.save(usuario);
+
+        return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
     }
 }
