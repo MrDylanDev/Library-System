@@ -1,24 +1,55 @@
 function LandingPage() {
   const wrapper = h('div');
 
+  const featuredBooks = [
+    { isbn: '9780141439518', title: 'Orgullo y prejuicio', author: 'Jane Austen' },
+    { isbn: '9788497592208', title: 'Cien años de soledad', author: 'Gabriel García Márquez' },
+    { isbn: '9788437604947', title: 'Rayuela', author: 'Julio Cortázar' },
+    { isbn: '9788420471839', title: 'La ciudad y los perros', author: 'Mario Vargas Llosa' },
+    { isbn: '9789505111881', title: 'El Aleph', author: 'Jorge Luis Borges' },
+    { isbn: '9788432216060', title: 'Crónica de una muerte', author: 'Gabriel García Márquez' },
+  ];
+
+  function bookCover(isbn, title) {
+    const cover = h('div', { className: 'book-cover' });
+    const img = h('img', {
+      src: `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`,
+      alt: title,
+      loading: 'lazy',
+    });
+    img.addEventListener('error', () => {
+      img.style.display = 'none';
+      cover.classList.add('book-cover-fallback');
+      cover.appendChild(h('span', { className: 'book-cover-title' }, title));
+    });
+    cover.appendChild(img);
+    return cover;
+  }
+
   // ══════ HERO ══════
   const hero = h('div', { className: 'landing-hero' });
 
-  const shapes = h('div', { className: 'hero-shapes', htmlContent: `
-    <div class="hero-shape s1"></div>
-    <div class="hero-shape s2"></div>
-    <div class="hero-shape s3"></div>
-    <div class="hero-shape s4"></div>
-  `});
-  hero.appendChild(shapes);
+  const heroBg = h('div', { className: 'hero-bg' });
+  heroBg.appendChild(h('div', { className: 'hero-pattern' }));
+  heroBg.appendChild(h('div', { className: 'hero-glow hg1' }));
+  heroBg.appendChild(h('div', { className: 'hero-glow hg2' }));
+  heroBg.appendChild(h('div', { className: 'hero-ornament ho1' }));
+  heroBg.appendChild(h('div', { className: 'hero-ornament ho2' }));
+  heroBg.appendChild(h('div', { className: 'hero-ornament ho3' }));
+  hero.appendChild(heroBg);
 
   const heroInner = h('div', { className: 'hero-inner' });
   const heroText = h('div', { className: 'hero-text' });
 
-  heroText.appendChild(h('h1', { htmlContent: 'Tu biblioteca, <span class="hero-highlight">sin planillas</span>' }));
+  const badge = h('div', { className: 'hero-badge' });
+  badge.appendChild(h('span', { className: 'badge-dot' }));
+  badge.appendChild(h('span', {}, 'Sistema de gestión bibliotecaria'));
+  heroText.appendChild(badge);
+
+  heroText.appendChild(h('h1', { htmlContent: 'Libro<span class="hero-highlight">Mágico</span>' }));
   heroText.appendChild(h('p', { className: 'hero-subtitle' },
-    'Dejá atrás los papeles y las hojas de cálculo. Gestioná préstamos, ' +
-    'devoluciones y multas desde una herramienta simple, hecha para tu día a día.'
+    'Todos tus libros, lectores y préstamos en un solo lugar. ' +
+    'Dejá atrás las planillas y descubrí lo simple que puede ser gestionar tu biblioteca.'
   ));
 
   const heroActions = h('div', { className: 'hero-actions' });
@@ -26,122 +57,178 @@ function LandingPage() {
     heroActions.appendChild(h('a', {
       href: '#/registro', className: 'btn-hero-primary',
       onClick: (e) => { e.preventDefault(); Router.navigate('/registro'); },
-    }, 'Crear cuenta', h('span', { htmlContent: ' &rarr;' })));
+    }, 'Comenzar ahora', h('span', { className: 'btn-arrow', htmlContent: '→' })));
     heroActions.appendChild(h('a', {
       href: '#/login', className: 'btn-hero-ghost',
       onClick: (e) => { e.preventDefault(); Router.navigate('/login'); },
-    }, 'Ya tengo cuenta'));
+    }, 'Iniciar sesión'));
   } else {
     heroActions.appendChild(h('a', {
       href: '#/catalogo', className: 'btn-hero-primary',
       onClick: (e) => { e.preventDefault(); Router.navigate('/catalogo'); },
-    }, 'Ir al catálogo', h('span', { htmlContent: ' &rarr;' })));
+    }, 'Ver catálogo', h('span', { className: 'btn-arrow', htmlContent: '→' })));
   }
   heroText.appendChild(heroActions);
+
+  const heroStats = h('div', { className: 'hero-stats' });
+  [
+    { value: '+500', label: 'Libros' },
+    { value: '200+', label: 'Lectores' },
+    { value: '24/7', label: 'Disponible' },
+  ].forEach(s => {
+    heroStats.appendChild(h('div', { className: 'hero-stat' },
+      h('span', { className: 'stat-value' }, s.value),
+      h('span', { className: 'stat-label' }, s.label),
+    ));
+  });
+  heroText.appendChild(heroStats);
   heroInner.appendChild(heroText);
 
-  // Books illustration (CSS)
-  const heroVisual = h('div', { className: 'hero-visual' });
-  heroVisual.appendChild(h('div', { className: 'bookshelf', htmlContent: `
-    <div class="book b1"><div class="book-spine"></div></div>
-    <div class="book b2"><div class="book-spine"></div></div>
-    <div class="book b3"><div class="book-spine"></div></div>
-    <div class="book b4"><div class="book-spine"></div></div>
-    <div class="book b5"><div class="book-spine"></div></div>
-  `}));
-  heroInner.appendChild(heroVisual);
+  const heroShelves = h('div', { className: 'hero-shelves' });
+  const shelf = h('div', { className: 'hero-shelf' });
+  featuredBooks.slice(0, 5).forEach(b => shelf.appendChild(bookCover(b.isbn, b.title)));
+  heroShelves.appendChild(shelf);
+  heroShelves.appendChild(h('div', { className: 'hero-shelf-shadow' }));
+  heroInner.appendChild(heroShelves);
 
   hero.appendChild(heroInner);
   wrapper.appendChild(hero);
 
-  // ══════ FEATURES ══════
-  const features = h('div', { className: 'landing-section' });
+  // ══════ FEATURED ══════
+  const featured = h('div', { className: 'landing-section' });
   const fInner = h('div', { className: 'landing-inner' });
-  fInner.appendChild(h('p', { className: 'section-eyebrow' }, 'Lo que hacemos'));
-  fInner.appendChild(h('h2', {}, 'Todo lo que necesitás para el día a día'));
+  fInner.appendChild(h('p', { className: 'section-eyebrow' }, 'Catálogo'));
+  fInner.appendChild(h('h2', {}, 'Libros destacados'));
   fInner.appendChild(h('p', { className: 'section-subtitle' },
-    'Desde que un lector pide un libro hasta que lo devuelve. Simple y sin vueltas.'
+    'Una selección de nuestro catálogo. Clásicos, contemporáneos y más, esperando ser descubiertos.'
   ));
 
-  const fGrid = h('div', { className: 'feature-grid' });
-  const featuresData = [
+  const coversRow = h('div', { className: 'covers-row' });
+  const coversTrack = h('div', { className: 'covers-track' });
+  featuredBooks.forEach(b => {
+    const item = h('div', { className: 'cover-item' });
+    const coverWrapper = h('div', { className: 'cover-wrapper' });
+    coverWrapper.appendChild(bookCover(b.isbn, b.title));
+    coverWrapper.appendChild(h('div', { className: 'cover-shine' }));
+    item.appendChild(coverWrapper);
+    item.appendChild(h('p', { className: 'cover-title' }, b.title));
+    item.appendChild(h('p', { className: 'cover-author' }, b.author));
+    coversTrack.appendChild(item);
+  });
+  coversRow.appendChild(coversTrack);
+  fInner.appendChild(coversRow);
+  featured.appendChild(fInner);
+  wrapper.appendChild(featured);
+
+  // ══════ SERVICES ══════
+  const services = h('div', { className: 'landing-section section-alt' });
+  const sInner = h('div', { className: 'landing-inner' });
+  sInner.appendChild(h('p', { className: 'section-eyebrow' }, 'Servicios'));
+  sInner.appendChild(h('h2', {}, 'Todo lo que tu biblioteca necesita'));
+  sInner.appendChild(h('p', { className: 'section-subtitle' },
+    'Herramientas pensadas para el día a día de una biblioteca real.'
+  ));
+
+  const sGrid = h('div', { className: 'service-grid' });
+  const servicesData = [
     {
-      num: '01', emoji: '&#128218;', title: 'Catálogo',
-      desc: 'Buscá por título, autor o ISBN. Sabé al instante si un libro está disponible o prestado.',
-      items: ['Búsqueda rápida', 'Disponibilidad en tiempo real', 'Categorización'],
+      icon: h('svg', { width: '22', height: '22', viewBox: '0 0 24 24', fill: 'none', stroke: '#92400e', 'stroke-width': '2', htmlContent: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' }),
+      title: 'Catálogo inteligente',
+      desc: 'Buscá por título, autor o ISBN. Sabé al instante qué libros están disponibles y cuáles prestados.',
+      color: 'sv1',
     },
     {
-      num: '02', emoji: '&#128214;', title: 'Préstamos',
-      desc: 'Registrá un préstamo en un clic. La fecha de devolución se calcula automáticamente.',
-      items: ['Fecha automática', 'Registro de entregas', 'Historial por lector'],
+      icon: h('svg', { width: '22', height: '22', viewBox: '0 0 24 24', fill: 'none', stroke: '#6b21a8', 'stroke-width': '2', htmlContent: '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>' }),
+      title: 'Préstamos automáticos',
+      desc: 'Registrá un préstamo en segundos. Las fechas de devolución se calculan solas, sin errores.',
+      color: 'sv2',
     },
     {
-      num: '03', emoji: '&#9200;', title: 'Multas',
-      desc: 'Si un libro se devuelve tarde, la multa se calcula sola. Sin errores, sin discusiones.',
-      items: ['Cálculo automático', 'Seguimiento de pagos', 'Control de morosos'],
+      icon: h('svg', { width: '22', height: '22', viewBox: '0 0 24 24', fill: 'none', stroke: '#1e40af', 'stroke-width': '2', htmlContent: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>' }),
+      title: 'Control de multas',
+      desc: 'Si un libro vuelve tarde, la multa se genera automáticamente. Llevá el control sin discusiones.',
+      color: 'sv3',
+    },
+    {
+      icon: h('svg', { width: '22', height: '22', viewBox: '0 0 24 24', fill: 'none', stroke: '#166534', 'stroke-width': '2', htmlContent: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' }),
+      title: 'Gestión de lectores',
+      desc: 'Registrá nuevos lectores, gestioná sus permisos y llevá el historial de cada uno.',
+      color: 'sv4',
     },
   ];
 
-  featuresData.forEach(f => {
-    const card = h('div', { className: 'feature-card ' + (f.num === '02' ? 'featured' : '') });
-    const emoji = h('div', { className: 'feature-emoji', htmlContent: f.emoji });
-    card.appendChild(emoji);
-    card.appendChild(h('h3', {}, f.title));
-    card.appendChild(h('p', { className: 'feature-desc' }, f.desc));
-    const list = h('ul', { className: 'feature-list' });
-    f.items.forEach(item => {
-      list.appendChild(h('li', { htmlContent: '<span class="check">&#10003;</span> ' + item }));
-    });
-    card.appendChild(list);
-    fGrid.appendChild(card);
+  servicesData.forEach(s => {
+    const card = h('div', { className: 'service-card ' + s.color });
+    const iconWrap = h('div', { className: 'service-icon' });
+    iconWrap.appendChild(s.icon);
+    card.appendChild(iconWrap);
+    const body = h('div', { className: 'service-body' });
+    body.appendChild(h('h3', {}, s.title));
+    body.appendChild(h('p', {}, s.desc));
+    card.appendChild(body);
+    sGrid.appendChild(card);
   });
 
-  fInner.appendChild(fGrid);
-  features.appendChild(fInner);
-  wrapper.appendChild(features);
+  sInner.appendChild(sGrid);
+  services.appendChild(sInner);
+  wrapper.appendChild(services);
 
-  // ══════ HOW IT WORKS ══════
-  const how = h('div', { className: 'landing-section section-dark' });
-  const hInner = h('div', { className: 'landing-inner' });
-  hInner.appendChild(h('p', { className: 'section-eyebrow dark-eyebrow' }, 'Así de simple'));
-  hInner.appendChild(h('h2', { className: 'dark-title' }, 'Tres pasos y tu biblioteca ya funciona'));
-  hInner.appendChild(h('p', { className: 'section-subtitle dark-subtitle' },
-    'No necesitás saber de sistemas. Si sabés usar una biblioteca, ya sabés usar LibroMagico.'
+  // ══════ TESTIMONIALS ══════
+  const testimonials = h('div', { className: 'landing-section' });
+  const tInner = h('div', { className: 'landing-inner' });
+  tInner.appendChild(h('p', { className: 'section-eyebrow' }, 'Testimonios'));
+  tInner.appendChild(h('h2', {}, 'Lo que dicen nuestros bibliotecarios'));
+  tInner.appendChild(h('p', { className: 'section-subtitle' },
+    'Porque una herramienta se mide por quienes la usan todos los días.'
   ));
 
-  const steps = h('div', { className: 'steps' });
-  const stepsData = [
-    { step: '1', emoji: '&#128100;', title: 'Registrate', desc: 'Creá tu cuenta con nombre, email y DNI. En segundos ya estás adentro.' },
-    { step: '2', emoji: '&#128190;', title: 'Cargá tus libros', desc: 'Agregalos por ISBN y completá autor, categoría y cantidad de copias.' },
-    { step: '3', emoji: '&#128077;', title: 'Empezá a prestar', desc: 'Los lectores exploran el catálogo. Vos gestionás todo desde el panel.' },
-  ];
-
-  stepsData.forEach(s => {
-    const card = h('div', { className: 'step-card' });
-    const icon = h('div', { className: 'step-icon', htmlContent: s.emoji });
-    card.appendChild(icon);
-    card.appendChild(h('div', { className: 'step-badge' }, 'Paso ' + s.step));
-    card.appendChild(h('h4', {}, s.title));
-    card.appendChild(h('p', {}, s.desc));
-    steps.appendChild(card);
+  const tGrid = h('div', { className: 'testimonial-grid' });
+  [
+    {
+      quote: '"Antes llevaba todo en cuadernos. Ahora en dos clics sé quién tiene cada libro y cuándo debe devolverlo. Un alivio."',
+      name: 'María Elena', role: 'Bibliotecaria escolar',
+    },
+    {
+      quote: '"Lo que más valoro es lo simple que es. No tuve que aprender nada nuevo, es como usar la biblioteca de siempre pero mejor."',
+      name: 'Carlos', role: 'Encargado de biblioteca popular',
+    },
+    {
+      quote: '"Las multas automáticas me salvaron. Antes era un lío calcularlas, ahora el sistema lo hace solo y los lectores lo entienden mejor."',
+      name: 'Laura', role: 'Bibliotecaria universitaria',
+    },
+  ].forEach(t => {
+    const card = h('div', { className: 'testimonial-card' });
+    card.appendChild(h('div', { className: 'testimonial-stars', htmlContent: '★★★★★' }));
+    card.appendChild(h('p', { className: 'testimonial-quote' }, t.quote));
+    card.appendChild(h('p', { className: 'testimonial-name' }, t.name));
+    card.appendChild(h('p', { className: 'testimonial-role' }, t.role));
+    tGrid.appendChild(card);
   });
-
-  hInner.appendChild(steps);
-  how.appendChild(hInner);
-  wrapper.appendChild(how);
+  tInner.appendChild(tGrid);
+  testimonials.appendChild(tInner);
+  wrapper.appendChild(testimonials);
 
   // ══════ CTA ══════
-  const cta = h('div', { className: 'landing-section' });
+  const cta = h('div', { className: 'landing-section section-cta' });
   const ctaInner = h('div', { className: 'landing-inner' });
   const ctaBox = h('div', { className: 'cta-box' });
-  ctaBox.appendChild(h('div', { className: 'cta-emoji', htmlContent: '&#128218;' }));
-  ctaBox.appendChild(h('h2', {}, 'Tu biblioteca merece algo mejor que un Excel'));
-  ctaBox.appendChild(h('p', {}, 'Probala. Sin costo. Sin compromiso. Sin instalar nada.'));
+
+  ctaBox.appendChild(h('div', { className: 'cta-decor' }));
+
+  ctaBox.appendChild(h('h2', {}, '¿Listo para transformar tu biblioteca?'));
+  ctaBox.appendChild(h('p', {}, 'Creá tu cuenta gratis y empezá a gestionar libros, préstamos y lectores sin complicaciones.'));
+
   if (!Store.isAuthenticated) {
-    ctaBox.appendChild(h('a', {
-      href: '#/registro', className: 'btn-hero-primary',
-      onClick: (e) => { e.preventDefault(); Router.navigate('/registro'); },
-    }, 'Empezar ahora'));
+    ctaBox.appendChild(h('div', { className: 'cta-actions' },
+      h('a', {
+        href: '#/registro', className: 'btn-hero-primary',
+        onClick: (e) => { e.preventDefault(); Router.navigate('/registro'); },
+      }, 'Crear cuenta gratis'),
+      h('a', {
+        href: '#/login', className: 'btn-hero-ghost btn-hero-ghost-dark',
+        onClick: (e) => { e.preventDefault(); Router.navigate('/login'); },
+      }, 'Ya tengo cuenta'),
+    ));
   } else {
     ctaBox.appendChild(h('a', {
       href: '#/catalogo', className: 'btn-hero-primary',
@@ -154,26 +241,60 @@ function LandingPage() {
 
   // ══════ FOOTER ══════
   const footer = h('footer', { className: 'landing-footer' });
-  const footerTop = h('div', { className: 'footer-top' });
+  const footerInner = h('div', { className: 'footer-inner' });
   const footerBrand = h('div', { className: 'footer-brand' });
-  footerBrand.appendChild(h('div', { className: 'footer-logo' }, 'LibroMagico'));
-  footerBrand.appendChild(h('p', {}, 'Software de gestión de préstamos para bibliotecas.'));
-  footerTop.appendChild(footerBrand);
+  footerBrand.appendChild(h('div', { className: 'footer-logo' }, 'LibroMágico'));
+  footerBrand.appendChild(h('p', {}, 'Software de gestión para bibliotecas. Simple, rápido y sin papeles.'));
+  footerInner.appendChild(footerBrand);
 
-  const footerLinks = h('div', { className: 'footer-links' });
-  const col = h('div', { className: 'footer-col' });
-  col.appendChild(h('strong', {}, 'Navegación'));
-  col.appendChild(h('a', { href: '#/', onClick: (e) => e.preventDefault() }, 'Inicio'));
-  col.appendChild(h('a', { href: '#/catalogo', onClick: (e) => { e.preventDefault(); Router.navigate('/catalogo'); } }, 'Catálogo'));
-  col.appendChild(h('a', { href: '#/login', onClick: (e) => { e.preventDefault(); Router.navigate('/login'); } }, 'Iniciar sesión'));
-  footerLinks.appendChild(col);
-  footerTop.appendChild(footerLinks);
-  footer.appendChild(footerTop);
+  const footerCols = h('div', { className: 'footer-cols' });
+  [
+    {
+      title: 'Navegación',
+      links: [
+        { label: 'Catálogo', href: '#/catalogo' },
+        { label: 'Iniciar sesión', href: '#/login' },
+        { label: 'Crear cuenta', href: '#/registro' },
+      ],
+    },
+    {
+      title: 'Biblioteca',
+      links: [
+        { label: 'Libros', href: '#/catalogo' },
+        { label: 'Préstamos', href: '#/mis-prestamos' },
+        { label: 'Panel admin', href: '#/admin/usuarios' },
+      ],
+    },
+  ].forEach(group => {
+    const col = h('div', { className: 'footer-col' });
+    col.appendChild(h('strong', {}, group.title));
+    group.links.forEach(link => {
+      col.appendChild(h('a', { href: link.href, onClick: (e) => { e.preventDefault(); Router.navigate(link.href.replace('#', '')); } }, link.label));
+    });
+    footerCols.appendChild(col);
+  });
+  footerInner.appendChild(footerCols);
+  footer.appendChild(footerInner);
 
-  footer.appendChild(h('div', { className: 'footer-bottom' }, h('p', {},
-    'Hecho con cuidado. Porque gestionar una biblioteca ya es bastante trabajo.'
-  )));
+  const footerBottom = h('div', { className: 'footer-bottom' });
+  footerBottom.appendChild(h('p', {}, '© 2026 LibroMágico. Todos los derechos reservados.'));
+  footer.appendChild(footerBottom);
+
   wrapper.appendChild(footer);
+
+  // Animations on scroll
+  requestAnimationFrame(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15 });
+
+    wrapper.querySelectorAll('.service-card, .testimonial-card, .cover-item, .section-eyebrow, .landing-section h2, .section-subtitle')
+      .forEach(el => observer.observe(el));
+  });
 
   return wrapper;
 }
