@@ -21,6 +21,7 @@ function Navbar() {
       links.appendChild(h('span', { className: 'user-badge' }, user?.email || ''));
       links.appendChild(h('button', { onClick: () => Store.logout() }, 'Salir'));
     } else {
+      links.appendChild(h('a', { href: '#/catalogo' }, 'Catálogo'));
       links.appendChild(h('a', { href: '#/login' }, 'Iniciar Sesión'));
       links.appendChild(h('a', { className: 'btn btn-primary btn-sm', href: '#/registro' }, 'Registrarse'));
     }

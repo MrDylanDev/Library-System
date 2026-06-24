@@ -32,6 +32,11 @@ public class LibroService {
         return libroRepository.findByTituloContainingIgnoreCase(titulo);
     }
 
+    public List<Libro> buscarGeneral(String q) {
+        if (q == null || q.isBlank()) return listarTodos();
+        return libroRepository.buscarGeneral(q.trim());
+    }
+
     public Libro crear(Libro libro) {
         libro.setEstado(EstadoLibro.DISPONIBLE);
         return libroRepository.save(libro);

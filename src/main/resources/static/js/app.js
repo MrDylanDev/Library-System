@@ -34,8 +34,22 @@ function App() {
 
   Router.register('/', async () => render(content, LandingPage()));
 
-  Router.register('/catalogo', guard(['USER', 'LIBRARIAN', 'ADMIN'], CatalogPage));
-  Router.register('/libros/:isbn', guard(['USER', 'LIBRARIAN', 'ADMIN'], BookDetailPage));
+  Router.register('/catalogo', async () => {
+    const wrapper = h('div', { className: 'container' });
+    render(content, null);
+    CatalogPage().then(el => {
+      wrapper.appendChild(el);
+      render(content, wrapper);
+    });
+  });
+  Router.register('/libros/:isbn', async (params) => {
+    const wrapper = h('div', { className: 'container' });
+    render(content, null);
+    BookDetailPage(params).then(el => {
+      wrapper.appendChild(el);
+      render(content, wrapper);
+    });
+  });
   Router.register('/mis-prestamos', guard(['USER', 'LIBRARIAN', 'ADMIN'], MyLoansPage));
   Router.register('/admin/libros/nuevo', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
   Router.register('/admin/libros/:isbn/editar', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
