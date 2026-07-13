@@ -247,4 +247,38 @@ class LibroMagicoIntegrationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("El préstamo ya fue devuelto"));
     }
+
+    @Test
+    @Order(17)
+    @DisplayName("GET /api/usuarios/{id} omite contrasena, resetToken, resetTokenExpiry")
+    void obtenerUsuarioNoExponeCamposSensibles() throws Exception {
+        mockMvc.perform(get("/api/usuarios/1")
+                        .header("Authorization", "Bearer " + librarianToken))
+                .andExpect(status().isOk())
+                // Debe exponer estos campos
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.nombre").value("Bibliotecario"))
+                .andExpect(jsonPath("$.email").value("biblio@test.com"))
+                .andExpect(jsonPath("$.dni").value("11111111"))
+                .andExpect(jsonPath("$.telefono").value("+5491111111111"))
+                .andExpect(jsonPath("$.rol").value("LIBRARIAN"))
+                .andExpect(jsonPath("$.estado").value("ACTIVO"))
+                // NO debe exponer estos campos sensibles
+                .andExpect(jsonPath("$.contrasena").doesNotExist())
+                .andExpect(jsonPath("$.resetToken").doesNotExist())
+                .andExpect(jsonPath("$.resetTokenExpiry").doesNotExist());
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("JWT inválido devuelve 401 con formato JSON GlobalExceptionHandler")
+    void jwtInvalidoDevuelve401ConFormatoCorrecto() throws Exception {
+        mockMvc.perform(get("/api/libros")
+                        .header("Authorization", "Bearer token-invalido"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").exists());
+    }
 }
