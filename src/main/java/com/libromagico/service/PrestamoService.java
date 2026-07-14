@@ -8,12 +8,14 @@ import com.libromagico.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class PrestamoService {
 
@@ -29,7 +31,7 @@ public class PrestamoService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + usuarioId));
         var libro = libroService.buscarPorIsbn(libroIsbn);
 
-        if (prestamoRepository.existsByUsuarioAndLibro(usuario, libro)) {
+        if (prestamoRepository.existsByUsuarioAndLibroAndEstado(usuario, libro, EstadoPrestamo.ACTIVO)) {
             throw new OperacionInvalidaException("El usuario ya tiene un préstamo activo de este libro");
         }
 
