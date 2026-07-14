@@ -1,9 +1,12 @@
 package com.libromagico.service;
 
+import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.exception.RecursoNoEncontradoException;
-import com.libromagico.repository.LibroRepository;
-import com.libromagico.model.Libro;
 import com.libromagico.model.EstadoLibro;
+import com.libromagico.model.EstadoPrestamo;
+import com.libromagico.model.Libro;
+import com.libromagico.repository.LibroRepository;
+import com.libromagico.repository.PrestamoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +17,7 @@ import java.util.List;
 public class LibroService {
 
     private final LibroRepository libroRepository;
+    private final PrestamoRepository prestamoRepository;
 
     public List<Libro> listarTodos() {
         return libroRepository.findAll();
@@ -53,6 +57,11 @@ public class LibroService {
     }
 
     public void eliminar(String isbn) {
+        var libro = buscarPorIsbn(isbn);
+        if (prestamoRepository.existsByLibroAndEstado(libro, EstadoPrestamo.ACTIVO)) {
+            throw new OperacionInvalidaException(
+                    "No se puede eliminar el libro porque tiene préstamos activos");
+        }
         libroRepository.deleteById(isbn);
     }
 

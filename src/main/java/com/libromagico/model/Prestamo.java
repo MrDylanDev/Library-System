@@ -10,6 +10,12 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "prestamos")
+@NamedQuery(
+    name = "Prestamo.existsByUsuarioAndLibroAndEstado",
+    query = "SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
+            "FROM Prestamo p WHERE p.usuario = :usuario " +
+            "AND p.libro = :libro AND p.estado = :estado"
+)
 public class Prestamo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
