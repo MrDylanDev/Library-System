@@ -73,8 +73,8 @@ class LibroMagicoIntegrationTest {
                         .content("""
                             {"nombre":"Otro","email":"dylan@test.com","contrasena":"Test456!","dni":"87654321","telefono":"+5491122334466"}
                             """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("El email ya está registrado"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("El email ya está registrado"));
     }
 
     @Test

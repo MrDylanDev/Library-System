@@ -1,9 +1,8 @@
 package com.libromagico.controller;
 
 import com.libromagico.dto.UsuarioResponse;
-import com.libromagico.exception.RecursoNoEncontradoException;
 import com.libromagico.model.Usuario;
-import com.libromagico.repository.UsuarioRepository;
+import com.libromagico.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +14,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UsuarioController {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
 
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listarTodos() {
-        var usuarios = usuarioRepository.findAll().stream()
+        var usuarios = usuarioService.listarTodos().stream()
                 .map(UsuarioController::toResponse)
                 .toList();
         return ResponseEntity.ok(usuarios);
@@ -27,8 +26,7 @@ public class UsuarioController {
 
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioResponse> buscarPorId(@PathVariable Long id) {
-        var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + id));
+        var usuario = usuarioService.buscarPorId(id);
         return ResponseEntity.ok(toResponse(usuario));
     }
 

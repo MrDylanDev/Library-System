@@ -3,12 +3,10 @@ package com.libromagico.controller;
 import com.libromagico.dto.UpdateEstadoRequest;
 import com.libromagico.dto.UpdateRolRequest;
 import com.libromagico.exception.OperacionInvalidaException;
-import com.libromagico.exception.RecursoNoEncontradoException;
-import com.libromagico.model.EstadoMulta;
 import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
-import com.libromagico.repository.MultaRepository;
-import com.libromagico.repository.UsuarioRepository;
+import com.libromagico.service.MultaService;
+import com.libromagico.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +19,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final UsuarioRepository usuarioRepository;
-    private final MultaRepository multaRepository;
+    private final UsuarioService usuarioService;
+    private final MultaService multaService;
 
     @PutMapping("/usuarios/{id}/rol")
     public ResponseEntity<?> actualizarRol(@PathVariable Long id, @Valid @RequestBody UpdateRolRequest request) {
-        var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + id));
-
         RolUsuario nuevoRol;
         try {
             nuevoRol = RolUsuario.valueOf(request.rol().toUpperCase());
@@ -36,16 +31,12 @@ public class AdminController {
             throw new OperacionInvalidaException("Rol inválido: " + request.rol() + ". Usar USER, LIBRARIAN o ADMIN");
         }
 
-        usuario.setRol(nuevoRol);
-        usuarioRepository.save(usuario);
+        var usuario = usuarioService.actualizarRol(id, nuevoRol);
         return ResponseEntity.ok(usuario);
     }
 
     @PutMapping("/usuarios/{id}/estado")
     public ResponseEntity<?> actualizarEstado(@PathVariable Long id, @Valid @RequestBody UpdateEstadoRequest request) {
-        var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + id));
-
         EstadoUsuario nuevoEstado;
         try {
             nuevoEstado = EstadoUsuario.valueOf(request.estado().toUpperCase());
@@ -53,28 +44,19 @@ public class AdminController {
             throw new OperacionInvalidaException("Estado inválido: " + request.estado() + ". Usar ACTIVO o BLOQUEADO");
         }
 
-        usuario.setEstado(nuevoEstado);
-        usuarioRepository.save(usuario);
+        var usuario = usuarioService.actualizarEstado(id, nuevoEstado);
         return ResponseEntity.ok(usuario);
     }
 
     @GetMapping("/multas")
     public ResponseEntity<List<?>> listarMultas() {
-        var multas = multaRepository.findAllWithPrestamoAndUsuario();
+        var multas = multaService.listarMultas();
         return ResponseEntity.ok(multas);
     }
 
     @PutMapping("/multas/{id}/pagar")
     public ResponseEntity<?> pagarMulta(@PathVariable Long id) {
-        var multa = multaRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Multa no encontrada: " + id));
-
-        if (multa.getEstado() == EstadoMulta.PAGADO) {
-            throw new OperacionInvalidaException("La multa ya fue pagada");
-        }
-
-        multa.setEstado(EstadoMulta.PAGADO);
-        multaRepository.save(multa);
+        var multa = multaService.pagarMulta(id);
         return ResponseEntity.ok(multa);
     }
 }
