@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class PrestamoService {
     private final PrestamoRepository prestamoRepository;
     private final LibroService libroService;
     private final UsuarioRepository usuarioRepository;
-    private final MultaRepository multaRepository;
+    private final MultaService multaService;
     private final PrestamoConfig prestamoConfig;
     private final EmailService emailService;
 
@@ -72,14 +73,11 @@ public class PrestamoService {
                 1);
 
         if (prestamo.getFechaEntregaReal().isAfter(prestamo.getFechaDevolucion())) {
-            var multa = new Multa();
-            multa.setPrestamo(prestamo);
-            multa.setMonto(prestamoConfig.getMultaMonto());
-            multa.setEstado(EstadoMulta.PENDIENTE);
-            multaRepository.save(multa);
+            BigDecimal monto = prestamoConfig.getMultaMonto();
+            multaService.crearMulta(prestamo, monto);
 
             var usuario = prestamo.getUsuario();
-            log.info("Multa generada: usuario={}, monto={}", usuario.getId(), prestamoConfig.getMultaMonto());
+            log.info("Multa generada: usuario={}, monto={}", usuario.getId(), monto);
             emailService.notificarDevolucionTardia(usuario.getEmail(),
                     prestamo.getLibro().getTitulo(),
                     prestamoConfig.getMultaMonto());
