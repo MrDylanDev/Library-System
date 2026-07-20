@@ -523,4 +523,16 @@ class LibroMagicoIntegrationTest {
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.message").exists());
     }
+
+    @Test
+    @DisplayName("Correlation ID header presente en respuestas")
+    void correlationIdHeaderPresent() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"email":"nonexistent@test.com","contrasena":"wrong"}
+                            """.trim()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().exists("X-Correlation-Id"));
+    }
 }
