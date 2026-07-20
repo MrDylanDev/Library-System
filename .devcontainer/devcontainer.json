@@ -1,0 +1,34 @@
+{
+    "name": "LibroMágico Dev",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/app",
+    "forwardPorts": [8080, 5432, 8025],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vscjava.vscode-java-pack",
+                "vscjava.vscode-spring-initializr",
+                "vscjava.vscode-spring-boot-dashboard",
+                "vscjava.vscode-lombok",
+                "vmware.vscode-boot-dev-pack",
+                "gabrielbb.vscode-lombok",
+                "pivotal.vscode-spring-boot",
+                "eamodio.gitlens",
+                "github.vscode-github-actions"
+            ],
+            "settings": {
+                "java.configuration.updateBuildConfiguration": "automatic",
+                "java.compile.nullAnalysis.mode": "automatic",
+                "editor.formatOnSave": true,
+                "files.exclude": {
+                    "**/.classpath": true,
+                    "**/.project": true,
+                    "**/.settings": true,
+                    "**/.factorypath": true
+                }
+            }
+        }
+    },
+    "postCreateCommand": "mvn dependency:go-offline -q || true"
+}
