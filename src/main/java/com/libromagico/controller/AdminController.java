@@ -2,6 +2,8 @@ package com.libromagico.controller;
 
 import com.libromagico.dto.UpdateEstadoRequest;
 import com.libromagico.dto.UpdateRolRequest;
+import com.libromagico.dto.UsuarioResponse;
+import com.libromagico.model.Usuario;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
@@ -32,7 +34,7 @@ public class AdminController {
         }
 
         var usuario = usuarioService.actualizarRol(id, nuevoRol);
-        return ResponseEntity.ok(usuario);
+        return ResponseEntity.ok(toResponse(usuario));
     }
 
     @PutMapping("/usuarios/{id}/estado")
@@ -45,7 +47,7 @@ public class AdminController {
         }
 
         var usuario = usuarioService.actualizarEstado(id, nuevoEstado);
-        return ResponseEntity.ok(usuario);
+        return ResponseEntity.ok(toResponse(usuario));
     }
 
     @GetMapping("/multas")
@@ -58,5 +60,9 @@ public class AdminController {
     public ResponseEntity<?> pagarMulta(@PathVariable Long id) {
         var multa = multaService.pagarMulta(id);
         return ResponseEntity.ok(multa);
+    }
+
+    private static UsuarioResponse toResponse(Usuario u) {
+        return new UsuarioResponse(u.getId(), u.getNombre(), u.getEmail(), u.getDni(), u.getTelefono(), u.getRol(), u.getEstado());
     }
 }
