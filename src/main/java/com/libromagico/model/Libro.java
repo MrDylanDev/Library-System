@@ -2,6 +2,7 @@ package com.libromagico.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import com.libromagico.validation.NotFutureYear;
 import lombok.*;
 
 @Entity
@@ -25,7 +26,7 @@ public class Libro {
     private String categoria;
 
     @Min(value = 1900, message = "Año de publicación inválido")
-    @Max(value = 2026, message = "Año de publicación no puede ser futuro")
+    @NotFutureYear
     private Integer añoPub;
 
     private String editorial;
