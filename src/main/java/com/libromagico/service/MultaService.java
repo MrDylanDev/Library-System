@@ -42,9 +42,7 @@ public class MultaService {
     }
 
     public List<Multa> obtenerMultasPorUsuario(Long usuarioId) {
-        return multaRepository.findAllWithPrestamoAndUsuario().stream()
-                .filter(m -> m.getPrestamo().getUsuario().getId().equals(usuarioId))
-                .toList();
+        return multaRepository.findByUsuarioId(usuarioId);
     }
 
     @Transactional
