@@ -8,6 +8,8 @@ import com.libromagico.model.Prestamo;
 import com.libromagico.repository.MultaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +39,8 @@ public class MultaService {
         return saved;
     }
 
-    public List<Multa> listarMultas() {
-        return multaRepository.findAllWithPrestamoAndUsuario();
+    public Page<Multa> listarMultas(Pageable pageable) {
+        return multaRepository.findAllWithPrestamoAndUsuario(pageable);
     }
 
     public List<Multa> obtenerMultasPorUsuario(Long usuarioId) {

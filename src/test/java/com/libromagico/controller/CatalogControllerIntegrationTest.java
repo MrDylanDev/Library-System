@@ -92,7 +92,7 @@ class CatalogControllerIntegrationTest {
 
         mockMvc.perform(get("/api/catalogo"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2));
     }
 
     @Test
@@ -135,8 +135,8 @@ class CatalogControllerIntegrationTest {
 
         mockMvc.perform(get("/api/catalogo/buscar?q=clean"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].titulo").value("Clean Code"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].titulo").value("Clean Code"));
     }
 
     @Test

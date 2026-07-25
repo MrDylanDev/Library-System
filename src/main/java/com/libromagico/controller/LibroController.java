@@ -4,11 +4,12 @@ import com.libromagico.model.Libro;
 import com.libromagico.service.LibroService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/libros")
@@ -18,8 +19,8 @@ public class LibroController {
     private final LibroService libroService;
 
     @GetMapping
-    public ResponseEntity<List<Libro>> listarTodos() {
-        return ResponseEntity.ok(libroService.listarTodos());
+    public ResponseEntity<Page<Libro>> listarTodos(@PageableDefault(sort = "titulo", size = 20) Pageable pageable) {
+        return ResponseEntity.ok(libroService.listarTodos(pageable));
     }
 
     @GetMapping("/{isbn}")
@@ -28,16 +29,17 @@ public class LibroController {
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<List<Libro>> buscar(
+    public ResponseEntity<Page<Libro>> buscar(
             @RequestParam(required = false) String autor,
-            @RequestParam(required = false) String titulo) {
+            @RequestParam(required = false) String titulo,
+            @PageableDefault(sort = "titulo", size = 20) Pageable pageable) {
         if (autor != null) {
-            return ResponseEntity.ok(libroService.buscarPorAutor(autor));
+            return ResponseEntity.ok(libroService.buscarPorAutor(autor, pageable));
         }
         if (titulo != null) {
-            return ResponseEntity.ok(libroService.buscarPorTitulo(titulo));
+            return ResponseEntity.ok(libroService.buscarPorTitulo(titulo, pageable));
         }
-        return ResponseEntity.ok(libroService.listarTodos());
+        return ResponseEntity.ok(libroService.listarTodos(pageable));
     }
 
     @PostMapping

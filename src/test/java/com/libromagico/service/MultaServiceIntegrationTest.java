@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -149,10 +150,10 @@ class MultaServiceIntegrationTest {
     @Test
     @DisplayName("listarMultas returns all multas with related data")
     void listarMultas() {
-        var result = multaService.listarMultas();
+        var result = multaService.listarMultas(Pageable.unpaged());
 
         assertNotNull(result);
-        assertEquals(2, result.size());
+        assertEquals(2, result.getTotalElements());
     }
 
     @Test
