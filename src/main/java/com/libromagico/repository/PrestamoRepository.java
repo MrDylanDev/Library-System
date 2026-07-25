@@ -1,6 +1,8 @@
 package com.libromagico.repository;
 
 import com.libromagico.model.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
-    List<Prestamo> findByUsuario(Usuario usuario);
+    Page<Prestamo> findByUsuario(Usuario usuario, Pageable pageable);
 
     boolean existsByUsuarioAndLibroAndEstado(
             @Param("usuario") Usuario usuario,

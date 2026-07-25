@@ -8,9 +8,9 @@ import com.libromagico.model.Libro;
 import com.libromagico.repository.LibroRepository;
 import com.libromagico.repository.PrestamoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,8 +19,8 @@ public class LibroService {
     private final LibroRepository libroRepository;
     private final PrestamoRepository prestamoRepository;
 
-    public List<Libro> listarTodos() {
-        return libroRepository.findAll();
+    public Page<Libro> listarTodos(Pageable pageable) {
+        return libroRepository.findAll(pageable);
     }
 
     public Libro buscarPorIsbn(String isbn) {
@@ -28,17 +28,17 @@ public class LibroService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Libro no encontrado: " + isbn));
     }
 
-    public List<Libro> buscarPorAutor(String autor) {
-        return libroRepository.findByAutorContainingIgnoreCase(autor);
+    public Page<Libro> buscarPorAutor(String autor, Pageable pageable) {
+        return libroRepository.findByAutorContainingIgnoreCase(autor, pageable);
     }
 
-    public List<Libro> buscarPorTitulo(String titulo) {
-        return libroRepository.findByTituloContainingIgnoreCase(titulo);
+    public Page<Libro> buscarPorTitulo(String titulo, Pageable pageable) {
+        return libroRepository.findByTituloContainingIgnoreCase(titulo, pageable);
     }
 
-    public List<Libro> buscarGeneral(String q) {
-        if (q == null || q.isBlank()) return listarTodos();
-        return libroRepository.buscarGeneral(q.trim());
+    public Page<Libro> buscarGeneral(String q, Pageable pageable) {
+        if (q == null || q.isBlank()) return listarTodos(pageable);
+        return libroRepository.buscarGeneral(q.trim(), pageable);
     }
 
     public Libro crear(Libro libro) {

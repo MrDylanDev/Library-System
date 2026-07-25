@@ -3,10 +3,11 @@ package com.libromagico.controller;
 import com.libromagico.model.Libro;
 import com.libromagico.service.LibroService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/catalogo")
@@ -16,13 +17,13 @@ public class CatalogController {
     private final LibroService libroService;
 
     @GetMapping
-    public ResponseEntity<List<Libro>> listarTodos() {
-        return ResponseEntity.ok(libroService.listarTodos());
+    public ResponseEntity<Page<Libro>> listarTodos(@PageableDefault(sort = "titulo", size = 20) Pageable pageable) {
+        return ResponseEntity.ok(libroService.listarTodos(pageable));
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<List<Libro>> buscar(@RequestParam String q) {
-        return ResponseEntity.ok(libroService.buscarGeneral(q));
+    public ResponseEntity<Page<Libro>> buscar(@RequestParam String q, @PageableDefault(sort = "titulo", size = 20) Pageable pageable) {
+        return ResponseEntity.ok(libroService.buscarGeneral(q, pageable));
     }
 
     @GetMapping("/{isbn}")

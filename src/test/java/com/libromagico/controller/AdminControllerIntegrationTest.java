@@ -157,7 +157,7 @@ class AdminControllerIntegrationTest {
         mockMvc.perform(get("/api/admin/multas")
                         .header("Authorization", "Bearer " + admin.token()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1));
     }
 
     @Test

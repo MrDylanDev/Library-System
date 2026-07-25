@@ -4,10 +4,11 @@ import com.libromagico.dto.UsuarioResponse;
 import com.libromagico.model.Usuario;
 import com.libromagico.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -17,11 +18,10 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     @GetMapping
-    public ResponseEntity<List<UsuarioResponse>> listarTodos() {
-        var usuarios = usuarioService.listarTodos().stream()
-                .map(UsuarioController::toResponse)
-                .toList();
-        return ResponseEntity.ok(usuarios);
+    public ResponseEntity<Page<UsuarioResponse>> listarTodos(@PageableDefault(sort = "id", size = 20) Pageable pageable) {
+        Page<Usuario> usuarios = usuarioService.listarTodos(pageable);
+        Page<UsuarioResponse> response = usuarios.map(UsuarioController::toResponse);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

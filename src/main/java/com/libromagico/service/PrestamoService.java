@@ -7,12 +7,13 @@ import com.libromagico.model.*;
 import com.libromagico.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -88,13 +89,13 @@ public class PrestamoService {
         return saved;
     }
 
-    public List<Prestamo> historialPorUsuario(Long usuarioId) {
+    public Page<Prestamo> historialPorUsuario(Long usuarioId, Pageable pageable) {
         var usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + usuarioId));
-        return prestamoRepository.findByUsuario(usuario);
+        return prestamoRepository.findByUsuario(usuario, pageable);
     }
 
-    public List<Prestamo> listarTodos() {
-        return prestamoRepository.findAll();
+    public Page<Prestamo> listarTodos(Pageable pageable) {
+        return prestamoRepository.findAll(pageable);
     }
 }

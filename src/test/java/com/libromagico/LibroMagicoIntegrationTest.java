@@ -181,8 +181,8 @@ class LibroMagicoIntegrationTest {
         mockMvc.perform(get("/api/libros")
                         .header("Authorization", "Bearer " + user.token()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].titulo").value("Clean Code"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].titulo").value("Clean Code"));
     }
 
     @Test
@@ -226,7 +226,7 @@ class LibroMagicoIntegrationTest {
         mockMvc.perform(get("/api/libros/buscar?autor=robert")
                         .header("Authorization", "Bearer " + user.token()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1));
     }
 
     @Test
@@ -392,8 +392,8 @@ class LibroMagicoIntegrationTest {
         mockMvc.perform(get("/api/prestamos/usuarios/" + user.id())
                         .header("Authorization", "Bearer " + user.token()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].libro.titulo").value("Clean Code"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].libro.titulo").value("Clean Code"));
     }
 
     @Test

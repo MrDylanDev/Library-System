@@ -9,12 +9,13 @@ import com.libromagico.model.Usuario;
 import com.libromagico.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -106,7 +107,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + id));
     }
 
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+    public Page<Usuario> listarTodos(Pageable pageable) {
+        return usuarioRepository.findAll(pageable);
     }
 }
