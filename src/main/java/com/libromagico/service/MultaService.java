@@ -1,5 +1,6 @@
 package com.libromagico.service;
 
+import com.libromagico.dto.MultaResponse;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.exception.RecursoNoEncontradoException;
 import com.libromagico.model.EstadoMulta;
@@ -45,6 +46,23 @@ public class MultaService {
 
     public List<Multa> obtenerMultasPorUsuario(Long usuarioId) {
         return multaRepository.findByUsuarioId(usuarioId);
+    }
+
+    public Page<MultaResponse> obtenerMultasPorUsuarioPaginado(
+            Long usuarioId, EstadoMulta estado, Pageable pageable) {
+        return multaRepository.findByUsuarioIdAndEstado(usuarioId, estado, pageable)
+                .map(this::toMultaResponse);
+    }
+
+    private MultaResponse toMultaResponse(Multa m) {
+        return new MultaResponse(
+                m.getId(), m.getMonto(), m.getEstado(),
+                m.getPrestamo().getId(),
+                m.getPrestamo().getLibro().getTitulo(),
+                m.getPrestamo().getLibro().getIsbn(),
+                m.getPrestamo().getFechaPrestamo(),
+                m.getPrestamo().getFechaDevolucion()
+        );
     }
 
     @Transactional
