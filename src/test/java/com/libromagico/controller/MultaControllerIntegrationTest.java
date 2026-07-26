@@ -217,4 +217,114 @@ class MultaControllerIntegrationTest {
                         .with(user("nonexistent@test.com").roles("USER")))
                 .andExpect(status().isNotFound());
     }
+
+    // ──────────────────────────────────────────────
+    // PUT /api/multas/{id}/pagar
+    // ──────────────────────────────────────────────
+
+    private Long createSingleMulta(Long usuarioId, EstadoMulta estado) {
+        var libro = new Libro();
+        libro.setIsbn("9780451524934");
+        libro.setTitulo("1984");
+        libro.setAutor("George Orwell");
+        libro.setCopiasDisponibles(1);
+        libro.setEstado(EstadoLibro.DISPONIBLE);
+        libroRepository.save(libro);
+
+        var usuario = usuarioRepository.findById(usuarioId).orElseThrow();
+
+        var prestamo = new Prestamo();
+        prestamo.setUsuario(usuario);
+        prestamo.setLibro(libro);
+        prestamo.setFechaPrestamo(LocalDate.now().minusDays(20));
+        prestamo.setFechaDevolucion(LocalDate.now().minusDays(5));
+        prestamo.setEstado(EstadoPrestamo.ACTIVO);
+        prestamo = prestamoRepository.save(prestamo);
+
+        var multa = new Multa();
+        multa.setPrestamo(prestamo);
+        multa.setMonto(new BigDecimal("10.00"));
+        multa.setEstado(estado);
+        multa = multaRepository.save(multa);
+        return multa.getId();
+    }
+
+    @Test
+    @DisplayName("PUT /api/multas/{id}/pagar - 200 with estado PAGADO")
+    void pagarMulta_ownMulta_returns200() throws Exception {
+        var token = createUserAndLogin();
+        var user = usuarioRepository.findByEmail(userEmail).orElseThrow();
+        var multaId = createSingleMulta(user.getId(), EstadoMulta.PENDIENTE);
+
+        mockMvc.perform(put("/api/multas/{id}/pagar", multaId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("PAGADO"))
+                .andExpect(jsonPath("$.id").value(multaId))
+                .andExpect(jsonPath("$.monto").isNumber());
+    }
+
+    @Test
+    @DisplayName("PUT /api/multas/{id}/pagar - 400 when already paid")
+    void pagarMulta_alreadyPaid_returns400() throws Exception {
+        var token = createUserAndLogin();
+        var user = usuarioRepository.findByEmail(userEmail).orElseThrow();
+        var multaId = createSingleMulta(user.getId(), EstadoMulta.PAGADO);
+
+        mockMvc.perform(put("/api/multas/{id}/pagar", multaId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("PUT /api/multas/{id}/pagar - 403 when multa belongs to another user")
+    void pagarMulta_otherUserMulta_returns403() throws Exception {
+        // Create user1 (owner of the multa)
+        var token1 = createUserAndLogin();
+        var user1 = usuarioRepository.findByEmail(userEmail).orElseThrow();
+        var multaId = createSingleMulta(user1.getId(), EstadoMulta.PENDIENTE);
+
+        // Create user2 manually (unique DNI required to avoid constraint violation)
+        String otherEmail = uniqueEmail("other");
+        var otherUser = new Usuario();
+        otherUser.setNombre("Other User");
+        otherUser.setEmail(otherEmail);
+        otherUser.setContrasena(passwordEncoder.encode("Other123!"));
+        otherUser.setDni("87654321");
+        otherUser.setTelefono("+5491122334466");
+        otherUser.setRol(RolUsuario.USER);
+        usuarioRepository.save(otherUser);
+
+        var loginResponse = mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content("""
+                            {"email":"%s","contrasena":"%s"}
+                            """.formatted(otherEmail, "Other123!")))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token2 = objectMapper.readValue(
+                loginResponse.getResponse().getContentAsString(), AuthResponse.class).token();
+
+        // Login as user2 and try to pay user1's multa
+        mockMvc.perform(put("/api/multas/{id}/pagar", multaId)
+                        .header("Authorization", "Bearer " + token2))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /api/multas/{id}/pagar - 404 when multa does not exist")
+    void pagarMulta_nonExistent_returns404() throws Exception {
+        var token = createUserAndLogin();
+
+        mockMvc.perform(put("/api/multas/99999/pagar")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /api/multas/{id}/pagar - 401 when unauthenticated")
+    void pagarMulta_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(put("/api/multas/1/pagar"))
+                .andExpect(status().isUnauthorized());
+    }
 }

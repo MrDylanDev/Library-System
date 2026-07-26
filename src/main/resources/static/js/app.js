@@ -58,6 +58,7 @@ function App() {
     });
   });
   Router.register('/mis-prestamos', guard(['USER', 'LIBRARIAN', 'ADMIN'], MyLoansPage));
+  Router.register('/mis-multas', guard(['USER', 'LIBRARIAN', 'ADMIN'], MisMultasPage));
   Router.register('/admin/libros/nuevo', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
   Router.register('/admin/libros/:isbn/editar', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
   Router.register('/admin/usuarios', guard(['LIBRARIAN', 'ADMIN'], AdminUsersPage));
