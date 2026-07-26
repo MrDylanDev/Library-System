@@ -19,6 +19,9 @@ public interface MultaRepository extends JpaRepository<Multa, Long> {
     @Query("SELECT m FROM Multa m JOIN FETCH m.prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.usuario.id = :usuarioId")
     List<Multa> findByUsuarioId(@Param("usuarioId") Long usuarioId);
 
+    @Query("SELECT m FROM Multa m JOIN FETCH m.prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE m.id = :id")
+    java.util.Optional<Multa> findByIdWithPrestamoAndUsuario(@Param("id") Long id);
+
     @Query(value = """
         SELECT m FROM Multa m JOIN FETCH m.prestamo p
         JOIN FETCH p.usuario JOIN FETCH p.libro
