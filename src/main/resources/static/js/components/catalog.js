@@ -70,6 +70,8 @@ function CatalogBookCard(book) {
     actions.appendChild(h('button', {
       className: 'btn btn-primary btn-sm',
       onClick: async () => {
+        const confirmed = await showConfirm('Prestar libro', `¿Solicitar préstamo de "${book.titulo}"?`, 'btn-primary');
+        if (!confirmed) return;
         try {
           const user = Store.get('user');
           await api.post('/prestamos', { usuarioId: user.id, libroIsbn: book.isbn });
@@ -135,6 +137,8 @@ async function BookDetailPage(params) {
       actions.appendChild(h('button', {
         className: 'btn btn-primary',
         onClick: async () => {
+          const confirmed = await showConfirm('Prestar libro', `¿Solicitar préstamo de "${book.titulo}"?`, 'btn-primary');
+          if (!confirmed) return;
           try {
             const user = Store.get('user');
             await api.post('/prestamos', { usuarioId: user.id, libroIsbn: book.isbn });
@@ -151,7 +155,8 @@ async function BookDetailPage(params) {
       actions.appendChild(h('button', {
         className: 'btn btn-danger',
         onClick: async () => {
-          if (!confirm('Eliminar este libro?')) return;
+          const confirmed = await showConfirm('Eliminar libro', `¿Eliminar "${book.titulo}"?`);
+          if (!confirmed) return;
           try {
             await api.del(`/libros/${book.isbn}`);
             Router.navigate('/catalogo');
