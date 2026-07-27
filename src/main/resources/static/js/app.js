@@ -61,6 +61,7 @@ function App() {
   Router.register('/mis-multas', guard(['USER', 'LIBRARIAN', 'ADMIN'], MisMultasPage));
   Router.register('/admin/libros/nuevo', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
   Router.register('/admin/libros/:isbn/editar', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
+  Router.register('/admin', guard(['LIBRARIAN', 'ADMIN'], AdminDashboardPage));
   Router.register('/admin/usuarios', guard(['LIBRARIAN', 'ADMIN'], AdminUsersPage));
   Router.register('/admin/multas', guard(['LIBRARIAN', 'ADMIN'], AdminMultasPage));
   Router.register('/admin/prestamos', guard(['LIBRARIAN', 'ADMIN'], AdminPrestamosPage));

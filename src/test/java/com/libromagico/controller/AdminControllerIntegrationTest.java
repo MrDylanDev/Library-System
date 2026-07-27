@@ -319,4 +319,42 @@ class AdminControllerIntegrationTest {
                         .header("Authorization", "Bearer " + admin.token()))
                 .andExpect(status().isBadRequest());
     }
+
+    // ---- Dashboard ----
+
+    @Test
+    @DisplayName("GET /api/admin/dashboard - ADMIN obtiene estadísticas")
+    void adminObtieneDashboard() throws Exception {
+        var admin = createAdminAndLogin();
+        var user = createUser(uniqueEmail("dashuser"), "66660101", RolUsuario.USER, "Pass123!");
+        createPrestamo(user, EstadoPrestamo.ACTIVO);
+
+        mockMvc.perform(get("/api/admin/dashboard")
+                        .header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalLibros").isNumber())
+                .andExpect(jsonPath("$.librosDisponibles").isNumber())
+                .andExpect(jsonPath("$.totalUsuarios").value(2)) // admin + user
+                .andExpect(jsonPath("$.prestamosActivos").value(1));
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/dashboard - LIBRARIAN también puede ver dashboard")
+    void librarianObtieneDashboard() throws Exception {
+        var librarian = createLibrarianAndLogin();
+
+        mockMvc.perform(get("/api/admin/dashboard")
+                        .header("Authorization", "Bearer " + librarian.token()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/dashboard - USER obtiene 403")
+    void userNoPuedeVerDashboard() throws Exception {
+        var user = createUserAndLogin();
+
+        mockMvc.perform(get("/api/admin/dashboard")
+                        .header("Authorization", "Bearer " + user.token()))
+                .andExpect(status().isForbidden());
+    }
 }

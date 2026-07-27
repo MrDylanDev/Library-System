@@ -15,6 +15,7 @@ function Navbar() {
       links.appendChild(h('a', { href: '#/mis-prestamos' }, 'Mis Préstamos'));
       links.appendChild(h('a', { href: '#/mis-multas' }, 'Mis Multas'));
       if (isAdmin) {
+        links.appendChild(h('a', { href: '#/admin' }, 'Dashboard'));
         links.appendChild(h('a', { href: '#/admin/prestamos' }, 'Préstamos'));
         links.appendChild(h('a', { href: '#/admin/usuarios' }, 'Usuarios'));
         links.appendChild(h('a', { href: '#/admin/multas' }, 'Multas'));

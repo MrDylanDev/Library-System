@@ -9,10 +9,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+import com.libromagico.model.EstadoLibro;
+
 public interface LibroRepository extends JpaRepository<Libro, String> {
     Page<Libro> findByAutorContainingIgnoreCase(String autor, Pageable pageable);
     Page<Libro> findByTituloContainingIgnoreCase(String titulo, Pageable pageable);
     List<Libro> findByCategoriaContainingIgnoreCase(String categoria);
+
+    long countByEstado(EstadoLibro estado);
 
     @Query("SELECT l FROM Libro l WHERE " +
            "LOWER(l.titulo) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
