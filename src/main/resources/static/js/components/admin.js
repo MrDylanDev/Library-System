@@ -45,6 +45,8 @@ async function AdminUsersPage() {
             className: 'btn btn-outline btn-sm',
             style: { marginRight: '4px' },
             onClick: async () => {
+              const confirmed = await showConfirm('Cambiar rol', `¿Cambiar a ${user.nombre} de ${user.rol} a ${nextRol}?`, 'btn-primary');
+              if (!confirmed) return;
               try {
                 await api.put(`/admin/usuarios/${user.id}/rol`, { rol: nextRol });
                 loadUsers();
@@ -57,6 +59,10 @@ async function AdminUsersPage() {
           actionsTd.appendChild(h('button', {
             className: `btn ${btnClass} btn-sm`,
             onClick: async () => {
+              const action = user.estado === 'ACTIVO' ? 'Bloquear' : 'Desbloquear';
+              const confirmClass = user.estado === 'ACTIVO' ? 'btn-danger' : 'btn-success';
+              const confirmed = await showConfirm('Cambiar estado', `¿${action} a ${user.nombre}?`, confirmClass);
+              if (!confirmed) return;
               try {
                 await api.put(`/admin/usuarios/${user.id}/estado`, { estado: nuevoEstado });
                 loadUsers();
@@ -122,6 +128,8 @@ async function AdminMultasPage() {
           actionTd.appendChild(h('button', {
             className: 'btn btn-success btn-sm',
             onClick: async () => {
+              const confirmed = await showConfirm('Pagar multa', `¿Registrar pago de $${multa.monto} de ${multa.prestamo?.usuario?.nombre || 'usuario'}?`, 'btn-primary');
+              if (!confirmed) return;
               try {
                 await api.put(`/admin/multas/${multa.id}/pagar`);
                 loadMultas();
@@ -317,7 +325,8 @@ async function AdminPrestamosPage() {
           actionTd.appendChild(h('button', {
             className: 'btn btn-success btn-sm',
             onClick: async () => {
-              if (!confirm('¿Registrar devolución de este préstamo?')) return;
+              const confirmed = await showConfirm('Registrar devolución', '¿Registrar devolución de este préstamo?', 'btn-primary');
+              if (!confirmed) return;
               try {
                 await api.put(`/prestamos/${p.id}/devolucion`);
                 render(alertContainer, showAlert('Devolución registrada', 'success'));
