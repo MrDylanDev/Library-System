@@ -279,6 +279,46 @@ tr:hover { background: var(--bg); }
   .container { padding: 0 0.75rem; }
 }
 
+/* ===== Admin Dashboard ===== */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.dashboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s;
+}
+
+.dashboard-card:hover { transform: translateY(-2px); }
+
+.dc-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 0.3rem;
+}
+
+.dc-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.dc-blue .dc-value { color: #1e40af; }
+.dc-green .dc-value { color: #166534; }
+.dc-yellow .dc-value { color: #854d0e; }
+.dc-red .dc-value { color: #991b1b; }
+.dc-purple .dc-value { color: #6b21a8; }
+
 /* ===== Landing Page ===== */
 
 /* Hero */

@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.libromagico.model.EstadoPrestamo;
+
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
     Page<Prestamo> findByUsuario(Usuario usuario, Pageable pageable);
 
@@ -19,6 +21,8 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
             @Param("estado") EstadoPrestamo estado);
 
     boolean existsByLibroAndEstado(Libro libro, EstadoPrestamo estado);
+    long countByEstado(EstadoPrestamo estado);
+    long countByEstadoAndFechaDevolucionBefore(EstadoPrestamo estado, LocalDate fecha);
 
     @Query("SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.estado = :estado AND p.fechaDevolucion < :fecha")
     List<Prestamo> findByEstadoAndFechaDevolucionBefore(@Param("estado") EstadoPrestamo estado, @Param("fecha") LocalDate fecha);

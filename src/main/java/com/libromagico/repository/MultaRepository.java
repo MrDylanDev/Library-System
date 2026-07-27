@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+import com.libromagico.model.EstadoMulta;
+
 public interface MultaRepository extends JpaRepository<Multa, Long> {
 
     @Query(value = "SELECT m FROM Multa m JOIN FETCH m.prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro",
@@ -21,6 +23,8 @@ public interface MultaRepository extends JpaRepository<Multa, Long> {
 
     @Query("SELECT m FROM Multa m JOIN FETCH m.prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE m.id = :id")
     java.util.Optional<Multa> findByIdWithPrestamoAndUsuario(@Param("id") Long id);
+
+    long countByEstado(EstadoMulta estado);
 
     @Query(value = """
         SELECT m FROM Multa m JOIN FETCH m.prestamo p
