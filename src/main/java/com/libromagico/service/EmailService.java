@@ -22,6 +22,9 @@ public class EmailService {
     @Value("${app.mail.enabled:false}")
     private boolean mailEnabled;
 
+    @Value("${spring.mail.from:noreply@libromagico.com}")
+    private String fromEmail;
+
     @Async
     public void enviarResetPassword(String email, String nombre, String resetLink) {
         if (!mailEnabled) {
@@ -32,6 +35,7 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
             helper.setTo(email);
             helper.setSubject("LibroMágico — Recuperación de contraseña");
             helper.setText(buildResetHtml(nombre, resetLink), true);
@@ -77,6 +81,7 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
             helper.setTo(email);
             helper.setSubject("LibroMágico — Devolución tardía: " + tituloLibro);
             helper.setText(buildHtml(tituloLibro, monto), true);
