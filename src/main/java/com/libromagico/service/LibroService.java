@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +64,17 @@ public class LibroService {
                     "No se puede eliminar el libro porque tiene préstamos activos");
         }
         libroRepository.deleteById(isbn);
+    }
+
+    @Transactional
+    public Libro marcarComoPerdido(String isbn) {
+        var libro = buscarPorIsbn(isbn);
+        if (libro.getEstado() == EstadoLibro.PERDIDO) {
+            throw new OperacionInvalidaException("El libro ya está marcado como perdido");
+        }
+        libro.setEstado(EstadoLibro.PERDIDO);
+        libro.setCopiasDisponibles(0);
+        return libroRepository.save(libro);
     }
 
     public void actualizarDisponibilidad(Libro libro, EstadoLibro estado, int deltaCopias) {

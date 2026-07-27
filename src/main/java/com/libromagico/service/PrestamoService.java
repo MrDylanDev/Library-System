@@ -37,6 +37,9 @@ public class PrestamoService {
             throw new OperacionInvalidaException("El usuario ya tiene un préstamo activo de este libro");
         }
 
+        if (libro.getEstado() == EstadoLibro.PERDIDO) {
+            throw new OperacionInvalidaException("El libro está marcado como perdido");
+        }
         if (libro.getEstado() != EstadoLibro.DISPONIBLE || libro.getCopiasDisponibles() <= 0) {
             throw new OperacionInvalidaException("El libro no está disponible para préstamo");
         }

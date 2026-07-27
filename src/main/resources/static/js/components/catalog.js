@@ -55,10 +55,13 @@ function CatalogBookCard(book) {
   const author = h('div', { className: 'author' }, book.autor);
   const meta = h('div', { className: 'meta' });
 
-  meta.appendChild(badge(
-    book.estado === 'DISPONIBLE' ? 'Disponible' : 'Prestado',
-    book.estado === 'DISPONIBLE' ? 'green' : 'red'
-  ));
+  const estadoLabel = book.estado === 'DISPONIBLE' ? 'Disponible'
+    : book.estado === 'PERDIDO' ? 'Perdido'
+    : 'Prestado';
+  const estadoColor = book.estado === 'DISPONIBLE' ? 'green'
+    : book.estado === 'PERDIDO' ? 'red'
+    : 'yellow';
+  meta.appendChild(badge(estadoLabel, estadoColor));
 
   const actions = h('div', { className: 'actions' });
   actions.appendChild(h('button', {
@@ -163,6 +166,21 @@ async function BookDetailPage(params) {
           } catch (err) { alert(err.message); }
         },
       }, 'Eliminar'));
+      if (book.estado !== 'PERDIDO') {
+        actions.appendChild(h('button', {
+          className: 'btn btn-outline',
+          style: { color: 'var(--danger)', borderColor: 'var(--danger)' },
+          onClick: async () => {
+            const confirmed = await showConfirm('Marcar como perdido', `¿Marcar "${book.titulo}" como perdido? Esto inhabilitará el libro para préstamos.`);
+            if (!confirmed) return;
+            try {
+              await api.put(`/admin/libros/${book.isbn}/perdido`);
+              // Reload to show updated state
+              Router.navigate(`/libros/${book.isbn}`);
+            } catch (err) { alert(err.message); }
+          },
+        }, 'Perdido'));
+      }
     }
     card.appendChild(actions);
 

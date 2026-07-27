@@ -4,12 +4,14 @@ import com.libromagico.dto.UpdateEstadoRequest;
 import com.libromagico.dto.UpdateRolRequest;
 import com.libromagico.dto.UsuarioResponse;
 import com.libromagico.model.EstadoPrestamo;
+import com.libromagico.model.Libro;
 import com.libromagico.model.Multa;
 import com.libromagico.model.Prestamo;
 import com.libromagico.model.Usuario;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
+import com.libromagico.service.LibroService;
 import com.libromagico.service.MultaService;
 import com.libromagico.service.PrestamoService;
 import com.libromagico.service.UsuarioService;
@@ -30,6 +32,7 @@ public class AdminController {
     private final UsuarioService usuarioService;
     private final MultaService multaService;
     private final PrestamoService prestamoService;
+    private final LibroService libroService;
 
     @PutMapping("/usuarios/{id}/rol")
     public ResponseEntity<?> actualizarRol(@PathVariable Long id, @Valid @RequestBody UpdateRolRequest request) {
@@ -66,6 +69,11 @@ public class AdminController {
     public ResponseEntity<?> pagarMulta(@PathVariable Long id) {
         var multa = multaService.pagarMulta(id);
         return ResponseEntity.ok(multa);
+    }
+
+    @PutMapping("/libros/{isbn}/perdido")
+    public ResponseEntity<Libro> marcarPerdido(@PathVariable String isbn) {
+        return ResponseEntity.ok(libroService.marcarComoPerdido(isbn));
     }
 
     @GetMapping("/prestamos")
