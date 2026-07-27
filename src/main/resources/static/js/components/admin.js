@@ -243,3 +243,103 @@ async function BookFormPage(params) {
   container.appendChild(card);
   return container;
 }
+
+async function AdminPrestamosPage() {
+  const container = h('div');
+  const alertContainer = h('div');
+
+  const card = h('div', { className: 'card' });
+  const header = h('div', { className: 'card-header' });
+  header.appendChild(h('h2', {}, 'Préstamos'));
+  card.appendChild(header);
+  card.appendChild(alertContainer);
+
+  const filterContainer = h('div', { className: 'form-group', style: { margin: '0.75rem 0' } });
+  const filterLabel = h('label', {}, 'Filtrar por estado: ');
+  const filterSelect = h('select', {
+    className: 'form-control',
+    style: { display: 'inline-block', width: 'auto', marginLeft: '0.5rem' },
+    onChange: () => loadPrestamos(),
+  });
+  ['', 'ACTIVO', 'ATRASADO', 'DEVUELTO'].forEach(val => {
+    const option = h('option', { value: val }, val || 'Todos');
+    filterSelect.appendChild(option);
+  });
+  filterContainer.appendChild(filterLabel);
+  filterContainer.appendChild(filterSelect);
+  card.appendChild(filterContainer);
+
+  const tableContainer = h('div');
+  card.appendChild(tableContainer);
+
+  async function loadPrestamos() {
+    tableContainer.innerHTML = '';
+    render(alertContainer, null);
+    try {
+      const estado = filterSelect.value;
+      const path = estado ? `/admin/prestamos?estado=${estado}` : '/admin/prestamos';
+      const data = await api.get(path);
+      const prestamos = data.content || [];
+
+      if (prestamos.length === 0) {
+        tableContainer.appendChild(
+          h('div', { className: 'empty-state' }, 'No hay préstamos registrados.')
+        );
+        return;
+      }
+
+      const table = h('table');
+      const thead = h('tr');
+      ['Usuario', 'DNI', 'Email', 'Libro', 'Préstamo', 'Devolución', 'Estado', 'Acción'].forEach(th =>
+        thead.appendChild(h('th', {}, th)));
+      table.appendChild(thead);
+
+      prestamos.forEach(p => {
+        const tr = h('tr');
+
+        tr.appendChild(h('td', {}, p.usuario?.nombre || '-'));
+        tr.appendChild(h('td', {}, p.usuario?.dni || '-'));
+        tr.appendChild(h('td', {}, p.usuario?.email || '-'));
+        tr.appendChild(h('td', {}, p.libro?.titulo || '-'));
+        tr.appendChild(h('td', {}, p.fechaPrestamo));
+        tr.appendChild(h('td', {}, p.fechaDevolucion || '-'));
+
+        const badgeColor = p.estado === 'ACTIVO' ? 'blue'
+          : p.estado === 'DEVUELTO' ? 'green'
+          : 'yellow';
+        const badgeText = p.estado === 'ACTIVO' ? 'Activo'
+          : p.estado === 'DEVUELTO' ? 'Devuelto'
+          : 'Atrasado';
+        tr.appendChild(h('td', {}, badge(badgeText, badgeColor)));
+
+        const actionTd = h('td');
+        if (p.estado === 'ACTIVO') {
+          actionTd.appendChild(h('button', {
+            className: 'btn btn-success btn-sm',
+            onClick: async () => {
+              if (!confirm('¿Registrar devolución de este préstamo?')) return;
+              try {
+                await api.put(`/prestamos/${p.id}/devolucion`);
+                render(alertContainer, showAlert('Devolución registrada', 'success'));
+                loadPrestamos();
+              } catch (err) {
+                render(alertContainer, showAlert(err.message, 'error'));
+              }
+            },
+          }, 'Registrar devolución'));
+        }
+        tr.appendChild(actionTd);
+
+        table.appendChild(tr);
+      });
+
+      tableContainer.appendChild(table);
+    } catch (err) {
+      render(alertContainer, showAlert(err.message, 'error'));
+    }
+  }
+
+  loadPrestamos();
+  container.appendChild(card);
+  return container;
+}
