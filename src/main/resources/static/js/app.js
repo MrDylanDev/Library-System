@@ -63,6 +63,7 @@ function App() {
   Router.register('/admin/libros/:isbn/editar', guard(['LIBRARIAN', 'ADMIN'], BookFormPage));
   Router.register('/admin/usuarios', guard(['LIBRARIAN', 'ADMIN'], AdminUsersPage));
   Router.register('/admin/multas', guard(['LIBRARIAN', 'ADMIN'], AdminMultasPage));
+  Router.register('/admin/prestamos', guard(['LIBRARIAN', 'ADMIN'], AdminPrestamosPage));
 
   Router.notFound = () => {
     const wrapper = h('div', { className: 'container' });

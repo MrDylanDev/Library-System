@@ -220,4 +220,103 @@ class AdminControllerIntegrationTest {
                         .header("Authorization", "Bearer " + librarian.token()))
                 .andExpect(status().isForbidden());
     }
+
+    private Prestamo createPrestamo(Usuario usuario, EstadoPrestamo estado) {
+        var libro = new Libro();
+        libro.setIsbn("9780451524934");
+        libro.setTitulo("1984");
+        libro.setAutor("George Orwell");
+        libro.setCopiasDisponibles(1);
+        libro.setEstado(EstadoLibro.DISPONIBLE);
+        libroRepository.save(libro);
+
+        var prestamo = new Prestamo();
+        prestamo.setUsuario(usuario);
+        prestamo.setLibro(libro);
+        prestamo.setFechaPrestamo(LocalDate.now().minusDays(10));
+        prestamo.setFechaDevolucion(LocalDate.now().plusDays(5));
+        prestamo.setEstado(estado);
+        return prestamoRepository.save(prestamo);
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos - ADMIN lista todos los préstamos")
+    void adminListaPrestamos() throws Exception {
+        var admin = createAdminAndLogin();
+        var user = createUser(uniqueEmail("prestamouser"), "55550111", RolUsuario.USER, "Pass123!");
+        createPrestamo(user, EstadoPrestamo.ACTIVO);
+        createPrestamo(user, EstadoPrestamo.DEVUELTO);
+
+        mockMvc.perform(get("/api/admin/prestamos")
+                        .header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos - LIBRARIAN lista todos los préstamos")
+    void librarianListaPrestamos() throws Exception {
+        var librarian = createLibrarianAndLogin();
+        var user = createUser(uniqueEmail("prestamouser2"), "55550112", RolUsuario.USER, "Pass123!");
+        createPrestamo(user, EstadoPrestamo.ACTIVO);
+
+        mockMvc.perform(get("/api/admin/prestamos")
+                        .header("Authorization", "Bearer " + librarian.token()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos - USER obtiene 403")
+    void userNoPuedeListarPrestamos() throws Exception {
+        var user = createUserAndLogin();
+
+        mockMvc.perform(get("/api/admin/prestamos")
+                        .header("Authorization", "Bearer " + user.token()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos - Unauthenticated obtiene 401")
+    void unauthenticatedNoPuedeListarPrestamos() throws Exception {
+        mockMvc.perform(get("/api/admin/prestamos"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos?estado=DEVUELTO - filtra por estado")
+    void adminListaPrestamosFiltrados() throws Exception {
+        var admin = createAdminAndLogin();
+        var user = createUser(uniqueEmail("prestamouser3"), "55550113", RolUsuario.USER, "Pass123!");
+        createPrestamo(user, EstadoPrestamo.ACTIVO);
+        createPrestamo(user, EstadoPrestamo.DEVUELTO);
+
+        mockMvc.perform(get("/api/admin/prestamos?estado=DEVUELTO")
+                        .header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].estado").value("DEVUELTO"));
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos?estado=ATRASADO - estado sin resultados devuelve página vacía")
+    void adminListaPrestamosEstadoVacio() throws Exception {
+        var admin = createAdminAndLogin();
+        var user = createUser(uniqueEmail("prestamouser4"), "55550114", RolUsuario.USER, "Pass123!");
+        createPrestamo(user, EstadoPrestamo.DEVUELTO);
+
+        mockMvc.perform(get("/api/admin/prestamos?estado=ATRASADO")
+                        .header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("GET /api/admin/prestamos?estado=INVALIDO - estado inválido devuelve 400")
+    void adminListaPrestamosEstadoInvalido() throws Exception {
+        var admin = createAdminAndLogin();
+
+        mockMvc.perform(get("/api/admin/prestamos?estado=INVALIDO")
+                        .header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().isBadRequest());
+    }
 }

@@ -3,17 +3,21 @@ package com.libromagico.controller;
 import com.libromagico.dto.UpdateEstadoRequest;
 import com.libromagico.dto.UpdateRolRequest;
 import com.libromagico.dto.UsuarioResponse;
+import com.libromagico.model.EstadoPrestamo;
 import com.libromagico.model.Multa;
+import com.libromagico.model.Prestamo;
 import com.libromagico.model.Usuario;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.service.MultaService;
+import com.libromagico.service.PrestamoService;
 import com.libromagico.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +29,7 @@ public class AdminController {
 
     private final UsuarioService usuarioService;
     private final MultaService multaService;
+    private final PrestamoService prestamoService;
 
     @PutMapping("/usuarios/{id}/rol")
     public ResponseEntity<?> actualizarRol(@PathVariable Long id, @Valid @RequestBody UpdateRolRequest request) {
@@ -61,6 +66,13 @@ public class AdminController {
     public ResponseEntity<?> pagarMulta(@PathVariable Long id) {
         var multa = multaService.pagarMulta(id);
         return ResponseEntity.ok(multa);
+    }
+
+    @GetMapping("/prestamos")
+    public ResponseEntity<Page<Prestamo>> listarPrestamosAdmin(
+            @RequestParam(required = false) EstadoPrestamo estado,
+            @PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
+        return ResponseEntity.ok(prestamoService.listarAdmin(estado, pageable));
     }
 
     private static UsuarioResponse toResponse(Usuario u) {

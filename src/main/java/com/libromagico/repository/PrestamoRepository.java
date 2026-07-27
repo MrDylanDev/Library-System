@@ -22,4 +22,12 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
 
     @Query("SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.estado = :estado AND p.fechaDevolucion < :fecha")
     List<Prestamo> findByEstadoAndFechaDevolucionBefore(@Param("estado") EstadoPrestamo estado, @Param("fecha") LocalDate fecha);
+
+    @Query(value = "SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro",
+           countQuery = "SELECT COUNT(p) FROM Prestamo p")
+    Page<Prestamo> findAllWithUsuariosAndLibros(Pageable pageable);
+
+    @Query(value = "SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.estado = :estado",
+           countQuery = "SELECT COUNT(p) FROM Prestamo p WHERE p.estado = :estado")
+    Page<Prestamo> findByEstadoWithUsuariosAndLibros(@Param("estado") EstadoPrestamo estado, Pageable pageable);
 }

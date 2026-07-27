@@ -98,4 +98,15 @@ public class PrestamoService {
     public Page<Prestamo> listarTodos(Pageable pageable) {
         return prestamoRepository.findAll(pageable);
     }
+
+    public Page<Prestamo> listarAdmin(EstadoPrestamo estado, Pageable pageable) {
+        if (estado != null) {
+            return prestamoRepository.findByEstadoWithUsuariosAndLibros(estado, pageable);
+        }
+        return prestamoRepository.findAllWithUsuariosAndLibros(pageable);
+    }
+
+    public Page<Prestamo> listarAdmin(Pageable pageable) {
+        return listarAdmin(null, pageable);
+    }
 }
