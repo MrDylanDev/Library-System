@@ -9,3 +9,5 @@ target/
 logs/
 node_modules/
 .codegraph/
+__pycache__/
+*.pyc
