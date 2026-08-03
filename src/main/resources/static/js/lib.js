@@ -82,6 +82,7 @@ const Store = {
 
 function h(tag, attrs = {}, ...children) {
   const el = document.createElement(tag);
+  const BOOL_ATTRS = ['disabled', 'required', 'readonly', 'checked', 'selected', 'hidden', 'multiple', 'autofocus'];
   Object.entries(attrs).forEach(([k, v]) => {
     if (k === 'className') el.className = v;
     else if (k === 'htmlContent') el.innerHTML = v;
@@ -89,6 +90,9 @@ function h(tag, attrs = {}, ...children) {
       el.addEventListener(k.slice(2).toLowerCase(), v);
     } else if (k === 'style' && typeof v === 'object') {
       Object.assign(el.style, v);
+    } else if (BOOL_ATTRS.includes(k)) {
+      if (v) el.setAttribute(k, '');
+      else el.removeAttribute(k);
     } else {
       el.setAttribute(k, v);
     }

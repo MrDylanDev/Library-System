@@ -16,7 +16,8 @@ async function AdminUsersPage() {
   async function loadUsers() {
     tableContainer.innerHTML = '';
     try {
-      const users = await api.get('/usuarios');
+      const data = await api.get('/usuarios');
+      const users = data.content || data;
       if (isEmpty(users)) {
         tableContainer.appendChild(h('div', { className: 'empty-state' }, 'No hay usuarios.'));
         return;
@@ -102,7 +103,8 @@ async function AdminMultasPage() {
   async function loadMultas() {
     tableContainer.innerHTML = '';
     try {
-      const multas = await api.get('/admin/multas');
+      const data = await api.get('/admin/multas');
+      const multas = data.content || data;
       if (isEmpty(multas)) {
         tableContainer.appendChild(h('div', { className: 'empty-state' }, 'No hay multas registradas.'));
         return;
@@ -177,6 +179,7 @@ async function BookFormPage(params) {
   const inputs = {};
   fields.forEach(f => {
     const input = h('input', {
+      name: f.name,
       type: f.type,
       value: f.value || '',
       required: f.required || false,

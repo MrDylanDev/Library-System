@@ -15,12 +15,13 @@ async function CatalogPage() {
   async function loadBooks(query = '') {
     grid.innerHTML = '';
     try {
-      let books;
+      let data;
       if (query) {
-        books = await api.get(`/catalogo/buscar?q=${encodeURIComponent(query)}`);
+        data = await api.get(`/catalogo/buscar?q=${encodeURIComponent(query)}`);
       } else {
-        books = await api.get('/catalogo');
+        data = await api.get('/catalogo');
       }
+      const books = data.content || data;
       if (isEmpty(books)) {
         grid.appendChild(h('p', { className: 'empty-state' }, 'No se encontraron libros.'));
         return;

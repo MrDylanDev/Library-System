@@ -50,6 +50,7 @@ public class UsuarioService {
         return saved;
     }
 
+    @Transactional
     public Optional<Usuario> forgotPassword(String email) {
         var usuario = usuarioRepository.findByEmail(email);
         if (usuario.isEmpty()) {
