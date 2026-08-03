@@ -8,3 +8,4 @@ target/
 .atl/
 logs/
 node_modules/
+.codegraph/
