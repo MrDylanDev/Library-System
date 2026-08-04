@@ -1,6 +1,6 @@
 """Tests de multas: mis multas, pago, admin multas."""
 import pytest
-from conftest import BASE_URL, login, should_see_text
+from conftest import BASE_URL, login, should_see_text, MOROSO_USER
 from playwright.sync_api import Page
 
 
@@ -33,22 +33,42 @@ def test_admin_multas_page(page: Page):
     assert has_table or has_empty, "No se ve ni tabla ni empty state"
 
 
-@pytest.mark.skip(reason="Requiere multa generada (préstamo vencido)")
 def test_user_can_pay_fine(page: Page):
-    """Usuario con multa pendiente puede pagarla."""
-    # TODO: 
-    # 1. Crear un préstamo con fecha vencida
-    # 2. Esperar a que se genere la multa
-    # 3. Ir a Mis Multas
-    # 4. Click Pagar
-    # 5. Verificar que cambia a Pagado
-    pass
+    """Usuario con multa pendiente puede pagarla desde Mis Multas."""
+    login(page, MOROSO_USER["email"], MOROSO_USER["contrasena"])
+    page.goto(f"{BASE_URL}/#/mis-multas")
+    page.wait_for_timeout(1000)
+
+    pagar_btn = page.locator("button:has-text('Pagar')")
+    assert pagar_btn.count() > 0, "No se encontraron multas pendientes para pagar"
+
+    total_before = pagar_btn.count()
+    pagar_btn.first.click()
+    page.wait_for_timeout(1500)
+
+    # Mis Multas solo muestra PENDIENTES, la pagada desaparece
+    remaining = page.locator("button:has-text('Pagar')").count()
+    assert remaining < total_before, "La multa no desapareció tras pagarla"
 
 
-@pytest.mark.skip(reason="Requiere multa generada (préstamo vencido)")
 def test_admin_can_pay_fine(page: Page):
     """Admin puede pagar una multa desde el panel."""
-    pass
+    login(page, "admin@libromagico.com", "admin123")
+    page.goto(f"{BASE_URL}/#/admin/multas")
+    page.wait_for_timeout(1000)
+
+    pagar_btn = page.locator("button:has-text('Pagar')")
+    if pagar_btn.count() == 0:
+        pytest.skip("No hay multas pendientes para pagar")
+
+    total_before = pagar_btn.count()
+    pagar_btn.first.click()
+    page.wait_for_selector(".modal-dialog")
+    page.click(".modal-dialog button:has-text('Confirmar')")
+    page.wait_for_timeout(1500)
+
+    remaining = page.locator("button:has-text('Pagar')").count()
+    assert remaining < total_before, "La multa no desapareció tras pagarla"
 
 
 def test_multas_page_shows_table_headers(page: Page):

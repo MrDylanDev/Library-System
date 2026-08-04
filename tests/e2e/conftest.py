@@ -15,6 +15,7 @@ MAILHOG_URL = "http://localhost:8025"
 ADMIN_USER = {"email": "admin@libromagico.com", "contrasena": "admin123"}
 LIBRARIAN_USER = {"email": "librarian@libromagico.com", "contrasena": "librarian123"}
 BASIC_USER = {"email": "usuario@libromagico.com", "contrasena": "usuario123"}
+MOROSO_USER = {"email": "moroso@libromagico.com", "contrasena": "moroso123"}
 
 
 def mailhog_clean():

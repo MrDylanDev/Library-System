@@ -7,12 +7,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Slf4j
 @Component
+@Order(1)
 @RequiredArgsConstructor
 @Profile("!test")
 public class DataInitializer implements CommandLineRunner {
@@ -34,7 +36,8 @@ public class DataInitializer implements CommandLineRunner {
                 createLibro("9781492090717", "Fluent Python", "Luciano Ramalho", "Software", 2022, "O'Reilly"),
                 createLibro("9780134494166", "Clean Architecture", "Robert C. Martin", "Software", 2017, "Prentice Hall"),
                 createLibro("9781617296208", "Spring in Action", "Craig Walls", "Software", 2022, "Manning"),
-                createLibro("9781449355739", "Learning Python", "Mark Lutz", "Software", 2013, "O'Reilly")
+                createLibro("9781449355739", "Learning Python", "Mark Lutz", "Software", 2013, "O'Reilly"),
+                createLibro("9780201616224", "The Pragmatic Programmer", "Andy Hunt", "Software", 1999, "Addison-Wesley", EstadoLibro.PERDIDO)
         );
 
         libroRepository.saveAll(libros);
@@ -42,6 +45,10 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Libro createLibro(String isbn, String titulo, String autor, String categoria, int añoPub, String editorial) {
+        return createLibro(isbn, titulo, autor, categoria, añoPub, editorial, EstadoLibro.DISPONIBLE);
+    }
+
+    private Libro createLibro(String isbn, String titulo, String autor, String categoria, int añoPub, String editorial, EstadoLibro estado) {
         var libro = new Libro();
         libro.setIsbn(isbn);
         libro.setTitulo(titulo);
@@ -50,7 +57,7 @@ public class DataInitializer implements CommandLineRunner {
         libro.setAñoPub(añoPub);
         libro.setEditorial(editorial);
         libro.setCopiasDisponibles(3);
-        libro.setEstado(EstadoLibro.DISPONIBLE);
+        libro.setEstado(estado);
         return libro;
     }
 }

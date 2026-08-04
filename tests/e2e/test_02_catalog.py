@@ -119,10 +119,13 @@ def test_catalog_search_no_results(page: Page):
     should_see_text(page, "No se encontraron libros")
 
 
-@pytest.mark.skip(reason="Requiere libro con estado PERDIDO en seed")
-def test_borrow_lost_book_shows_error(page: Page):
-    """Prestar un libro perdido debe mostrar error."""
-    pass
+def test_lost_book_cannot_be_borrowed(page: Page):
+    """Un libro PERDIDO no ofrece botón de préstamo."""
+    login(page, "usuario@libromagico.com", "usuario123")
+    page.goto(f"{BASE_URL}/#/libros/9780201616224")
+    page.wait_for_selector(".detail-grid", timeout=5000)
+    should_see_text(page, "PERDIDO")
+    assert page.locator("button:has-text('Prestar este libro')").count() == 0
 
 
 def test_book_marked_as_borrowed_after_loan(page: Page):
