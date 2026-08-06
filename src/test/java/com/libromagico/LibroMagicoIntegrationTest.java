@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -62,7 +63,7 @@ class LibroMagicoIntegrationTest {
         librarian.setRol(RolUsuario.LIBRARIAN);
         usuarioRepository.save(librarian);
 
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"Biblio123!"}
@@ -73,7 +74,7 @@ class LibroMagicoIntegrationTest {
     }
 
     private AuthResponse registerUser(String email) throws Exception {
-        var response = mockMvc.perform(post("/api/auth/register")
+        var response = mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"nombre":"Dylan","email":"%s","contrasena":"Test123!","dni":"12345678","telefono":"+5491122334455"}
@@ -87,7 +88,7 @@ class LibroMagicoIntegrationTest {
     @DisplayName("Registrar usuario normal y obtener token")
     void registrarUsuario() throws Exception {
         var email = uniqueEmail("dylan");
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"nombre":"Dylan","email":"%s","contrasena":"Test123!","dni":"12345678","telefono":"+5491122334455"}
@@ -104,7 +105,7 @@ class LibroMagicoIntegrationTest {
         var email = uniqueEmail("dylan");
 
         // First registration succeeds
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"nombre":"Dylan","email":"%s","contrasena":"Test123!","dni":"12345678","telefono":"+5491122334455"}
@@ -112,7 +113,7 @@ class LibroMagicoIntegrationTest {
                 .andExpect(status().isCreated());
 
         // Duplicate email is rejected
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"nombre":"Otro","email":"%s","contrasena":"Test456!","dni":"87654321","telefono":"+5491122334466"}
@@ -134,7 +135,7 @@ class LibroMagicoIntegrationTest {
         librarian.setRol(RolUsuario.LIBRARIAN);
         usuarioRepository.save(librarian);
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"Biblio123!"}
@@ -150,7 +151,7 @@ class LibroMagicoIntegrationTest {
         var auth = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -168,7 +169,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -191,7 +192,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -213,7 +214,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -235,7 +236,7 @@ class LibroMagicoIntegrationTest {
         var auth = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -243,7 +244,7 @@ class LibroMagicoIntegrationTest {
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(put("/api/libros/" + isbn)
+        mockMvc.perform(put("/api/libros/" + isbn).with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -259,7 +260,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -269,7 +270,7 @@ class LibroMagicoIntegrationTest {
 
         var user = registerUser(uniqueEmail("user"));
 
-        mockMvc.perform(delete("/api/libros/" + isbn)
+        mockMvc.perform(delete("/api/libros/" + isbn).with(csrf())
                         .header("Authorization", "Bearer " + user.token()))
                 .andExpect(status().isForbidden());
     }
@@ -291,7 +292,7 @@ class LibroMagicoIntegrationTest {
         var auth = createLibrarianAndLogin();
         var isbn = "9780201633610";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -308,7 +309,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -318,7 +319,7 @@ class LibroMagicoIntegrationTest {
 
         var user = registerUser(uniqueEmail("user"));
 
-        mockMvc.perform(post("/api/prestamos")
+        mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -335,7 +336,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -346,7 +347,7 @@ class LibroMagicoIntegrationTest {
         var user = registerUser(uniqueEmail("user"));
 
         // First loan succeeds
-        mockMvc.perform(post("/api/prestamos")
+        mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -355,7 +356,7 @@ class LibroMagicoIntegrationTest {
                 .andExpect(status().isCreated());
 
         // Duplicate loan is rejected
-        mockMvc.perform(post("/api/prestamos")
+        mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -371,7 +372,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -381,7 +382,7 @@ class LibroMagicoIntegrationTest {
 
         var user = registerUser(uniqueEmail("user"));
 
-        mockMvc.perform(post("/api/prestamos")
+        mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -402,7 +403,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -412,7 +413,7 @@ class LibroMagicoIntegrationTest {
 
         var user = registerUser(uniqueEmail("user"));
 
-        var prestamoResponse = mockMvc.perform(post("/api/prestamos")
+        var prestamoResponse = mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -424,7 +425,7 @@ class LibroMagicoIntegrationTest {
         var prestamoBody = objectMapper.readValue(prestamoResponse.getResponse().getContentAsString(), Map.class);
         var prestamoId = ((Number) prestamoBody.get("id")).longValue();
 
-        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion")
+        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("DEVUELTO"))
@@ -437,7 +438,7 @@ class LibroMagicoIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var isbn = "9780132350884";
 
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -447,7 +448,7 @@ class LibroMagicoIntegrationTest {
 
         var user = registerUser(uniqueEmail("user"));
 
-        var prestamoResponse = mockMvc.perform(post("/api/prestamos")
+        var prestamoResponse = mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -460,12 +461,12 @@ class LibroMagicoIntegrationTest {
         var prestamoId = ((Number) prestamoBody.get("id")).longValue();
 
         // Return the book first
-        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion")
+        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token()))
                 .andExpect(status().isOk());
 
         // Second return is rejected
-        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion")
+        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("El préstamo ya fue devuelto"));
@@ -486,7 +487,7 @@ class LibroMagicoIntegrationTest {
         var librarianId = saved.getId();
 
         var auth = objectMapper.readValue(
-                mockMvc.perform(post("/api/auth/login")
+                mockMvc.perform(post("/api/auth/login").with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                     {"email":"%s","contrasena":"Biblio123!"}
@@ -527,7 +528,7 @@ class LibroMagicoIntegrationTest {
     @Test
     @DisplayName("Correlation ID header presente en respuestas")
     void correlationIdHeaderPresent() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"nonexistent@test.com","contrasena":"wrong"}

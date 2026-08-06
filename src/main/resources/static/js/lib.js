@@ -39,17 +39,37 @@ const Router = {
 };
 
 const Store = {
-  _state: { token: null, user: null },
+  _state: { user: null },
   _listeners: {},
 
   init() {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    this._state = { token, user };
+    this._state.user = JSON.parse(localStorage.getItem('user') || 'null');
+  },
+
+  async boot() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!res.ok) {
+        this._state.user = null;
+        localStorage.removeItem('user');
+        this.set('user', null);
+        return false;
+      }
+      const user = await res.json();
+      this._state.user = user;
+      localStorage.setItem('user', JSON.stringify(user));
+      this.set('user', user);
+      return true;
+    } catch (err) {
+      this._state.user = null;
+      localStorage.removeItem('user');
+      this.set('user', null);
+      return false;
+    }
   },
 
   get(key) { return this._state[key]; },
-  get isAuthenticated() { return !!this._state.token; },
+  get isAuthenticated() { return !!this._state.user; },
   get roles() { return this._state.user?.rol ? [this._state.user.rol] : []; },
   get hasRole() {
     return (...roles) => roles.some(r => this.roles.includes(r));
@@ -64,18 +84,19 @@ const Store = {
     (this._listeners[key] = this._listeners[key] || []).push(fn);
   },
 
-  login(token, user) {
-    localStorage.setItem('token', token);
+  login(user) {
     localStorage.setItem('user', JSON.stringify(user));
-    this.set('token', token);
     this.set('user', user);
   },
 
-  logout() {
-    localStorage.removeItem('token');
+  async logout() {
     localStorage.removeItem('user');
-    this.set('token', null);
     this.set('user', null);
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      // El cierre de sesión no debe bloquear la navegación.
+    }
     Router.navigate('/login');
   }
 };

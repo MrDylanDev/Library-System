@@ -34,7 +34,6 @@ function Navbar() {
   }
 
   build();
-  Store.onChange('token', () => build());
   Store.onChange('user', () => build());
 
   return nav;

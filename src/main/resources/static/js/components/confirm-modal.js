@@ -17,14 +17,20 @@ function showConfirm(title, message, confirmClass) {
 
     const footer = h('div', { className: 'modal-footer' });
 
+    function close(result) {
+      document.removeEventListener('keydown', handleKey);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      resolve(result);
+    }
+
     const cancelBtn = h('button', {
       className: 'btn btn-outline',
-      onClick: () => { document.body.removeChild(overlay); resolve(false); }
+      onClick: () => close(false)
     }, 'Cancelar');
 
     const confirmBtn = h('button', {
       className: 'btn ' + btnClass,
-      onClick: () => { document.body.removeChild(overlay); resolve(true); }
+      onClick: () => close(true)
     }, 'Confirmar');
 
     footer.appendChild(cancelBtn);
@@ -45,16 +51,5 @@ function showConfirm(title, message, confirmClass) {
       if (e.key === 'Enter' && !e.shiftKey) { confirmBtn.click(); }
     }
     document.addEventListener('keydown', handleKey);
-    // Clean up listener when modal closes
-    const origCancel = cancelBtn.onClick;
-    const origConfirm = confirmBtn.onClick;
-    cancelBtn.onClick = (e) => {
-      document.removeEventListener('keydown', handleKey);
-      origCancel(e);
-    };
-    confirmBtn.onClick = (e) => {
-      document.removeEventListener('keydown', handleKey);
-      origConfirm(e);
-    };
   });
 }

@@ -64,7 +64,8 @@ public class PrestamoService {
         var prestamo = prestamoRepository.findById(prestamoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Préstamo no encontrado: " + prestamoId));
 
-        if (prestamo.getEstado() != EstadoPrestamo.ACTIVO) {
+        if (prestamo.getEstado() != EstadoPrestamo.ACTIVO
+                && prestamo.getEstado() != EstadoPrestamo.ATRASADO) {
             throw new OperacionInvalidaException("El préstamo ya fue devuelto");
         }
 

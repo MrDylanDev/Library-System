@@ -140,6 +140,30 @@ class PrestamoDevolverTest {
     }
 
     @Test
+    @DisplayName("devolver() préstamo ATRASADO se cierra a DEVUELTO y genera multa")
+    void devolver_atrasado_cierraYCobraMulta() {
+        var prestamo = new Prestamo();
+        prestamo.setUsuario(usuario);
+        prestamo.setLibro(libro);
+        prestamo.setFechaPrestamo(LocalDate.now().minusDays(20));
+        prestamo.setFechaDevolucion(LocalDate.now().minusDays(5));
+        prestamo.setEstado(EstadoPrestamo.ATRASADO);
+        var saved = prestamoRepository.save(prestamo);
+
+        var devuelto = prestamoService.devolver(saved.getId());
+
+        assertEquals(EstadoPrestamo.DEVUELTO, devuelto.getEstado());
+        assertNotNull(devuelto.getFechaEntregaReal());
+
+        var multas = multaRepository.findAll();
+        var multa = multas.stream()
+                .filter(m -> m.getPrestamo().getId().equals(saved.getId()))
+                .findFirst();
+        assertTrue(multa.isPresent(), "Devolver un préstamo ATRASADO debe generar multa");
+        assertEquals(EstadoMulta.PENDIENTE, multa.get().getEstado());
+    }
+
+    @Test
     @DisplayName("devolver() préstamo ya devuelto lanza OperacionInvalidaException")
     void devolver_yaDevuelto_lanzaExcepcion() {
         var prestamo = prestamoService.prestar(usuario.getId(), libro.getIsbn());

@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -66,7 +67,7 @@ class MultaControllerIntegrationTest {
         user.setRol(RolUsuario.USER);
         usuarioRepository.save(user);
 
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType("application/json")
                         .content("""
                             {"email":"%s","contrasena":"%s"}
@@ -256,7 +257,7 @@ class MultaControllerIntegrationTest {
         var user = usuarioRepository.findByEmail(userEmail).orElseThrow();
         var multaId = createSingleMulta(user.getId(), EstadoMulta.PENDIENTE);
 
-        mockMvc.perform(put("/api/multas/{id}/pagar", multaId)
+        mockMvc.perform(put("/api/multas/{id}/pagar", multaId).with(csrf())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PAGADO"))
@@ -271,7 +272,7 @@ class MultaControllerIntegrationTest {
         var user = usuarioRepository.findByEmail(userEmail).orElseThrow();
         var multaId = createSingleMulta(user.getId(), EstadoMulta.PAGADO);
 
-        mockMvc.perform(put("/api/multas/{id}/pagar", multaId)
+        mockMvc.perform(put("/api/multas/{id}/pagar", multaId).with(csrf())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
     }
@@ -295,7 +296,7 @@ class MultaControllerIntegrationTest {
         otherUser.setRol(RolUsuario.USER);
         usuarioRepository.save(otherUser);
 
-        var loginResponse = mockMvc.perform(post("/api/auth/login")
+        var loginResponse = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType("application/json")
                         .content("""
                             {"email":"%s","contrasena":"%s"}
@@ -306,7 +307,7 @@ class MultaControllerIntegrationTest {
                 loginResponse.getResponse().getContentAsString(), AuthResponse.class).token();
 
         // Login as user2 and try to pay user1's multa
-        mockMvc.perform(put("/api/multas/{id}/pagar", multaId)
+        mockMvc.perform(put("/api/multas/{id}/pagar", multaId).with(csrf())
                         .header("Authorization", "Bearer " + token2))
                 .andExpect(status().isForbidden());
     }
@@ -316,7 +317,7 @@ class MultaControllerIntegrationTest {
     void pagarMulta_nonExistent_returns404() throws Exception {
         var token = createUserAndLogin();
 
-        mockMvc.perform(put("/api/multas/99999/pagar")
+        mockMvc.perform(put("/api/multas/99999/pagar").with(csrf())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound());
     }
@@ -324,7 +325,7 @@ class MultaControllerIntegrationTest {
     @Test
     @DisplayName("PUT /api/multas/{id}/pagar - 401 when unauthenticated")
     void pagarMulta_unauthenticated_returns401() throws Exception {
-        mockMvc.perform(put("/api/multas/1/pagar"))
+        mockMvc.perform(put("/api/multas/1/pagar").with(csrf()))
                 .andExpect(status().isUnauthorized());
     }
 }

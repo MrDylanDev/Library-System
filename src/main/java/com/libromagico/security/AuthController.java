@@ -9,10 +9,13 @@ import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.repository.UsuarioRepository;
 import com.libromagico.service.EmailService;
 import com.libromagico.service.UsuarioService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
@@ -36,24 +40,50 @@ public class AuthController {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
+    @Value("${app.cookie-secure:false}")
+    private boolean cookieSecure;
+
+    @Value("${jwt.expiration:86400000}")
+    private long jwtExpiration;
+
+    private ResponseCookie jwtCookie(String token) {
+        return ResponseCookie.from("AuthToken", token)
+                .httpOnly(true)
+                .path("/")
+                .sameSite("Strict")
+                .secure(cookieSecure)
+                .maxAge(Duration.ofMillis(jwtExpiration))
+                .build();
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.contrasena()));
 
         var usuario = usuarioRepository.findByEmail(request.email()).orElseThrow();
         String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getRol().name());
 
+        response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie(token).toString());
         return ResponseEntity.ok(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
         var usuario = usuarioService.register(request);
 
         String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getRol().name());
+        response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie(token).toString());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        ResponseCookie delete = ResponseCookie.from("AuthToken", "")
+                .httpOnly(true).path("/").sameSite("Strict").secure(cookieSecure).maxAge(0).build();
+        response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
+        return ResponseEntity.ok(Map.of("message", "Sesión cerrada"));
     }
 
     @GetMapping("/me")

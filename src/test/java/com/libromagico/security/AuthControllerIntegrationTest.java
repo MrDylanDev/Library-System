@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -62,7 +63,7 @@ class AuthControllerIntegrationTest {
     }
 
     private String loginAndGetToken(String email) throws Exception {
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"Test123!"}
@@ -103,7 +104,7 @@ class AuthControllerIntegrationTest {
         var email = uniqueEmail("forgot");
         createUser(email, "23456789");
 
-        mockMvc.perform(post("/api/auth/forgot-password")
+        mockMvc.perform(post("/api/auth/forgot-password").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s"}
@@ -115,7 +116,7 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/auth/forgot-password - email inexistente también devuelve éxito (seguridad)")
     void forgotPasswordEmailInexistente() throws Exception {
-        mockMvc.perform(post("/api/auth/forgot-password")
+        mockMvc.perform(post("/api/auth/forgot-password").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"noexiste@test.com"}
@@ -133,7 +134,7 @@ class AuthControllerIntegrationTest {
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(user);
 
-        mockMvc.perform(post("/api/auth/reset-password")
+        mockMvc.perform(post("/api/auth/reset-password").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"token":"token-valido-123","newPassword":"NuevaPass1!"}
@@ -145,7 +146,7 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST /api/auth/reset-password - token inválido devuelve 409")
     void resetPasswordTokenInvalido() throws Exception {
-        mockMvc.perform(post("/api/auth/reset-password")
+        mockMvc.perform(post("/api/auth/reset-password").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"token":"token-invalido","newPassword":"NuevaPass1!"}
@@ -163,7 +164,7 @@ class AuthControllerIntegrationTest {
         user.setResetTokenExpiry(LocalDateTime.now().minusHours(1));
         usuarioRepository.save(user);
 
-        mockMvc.perform(post("/api/auth/reset-password")
+        mockMvc.perform(post("/api/auth/reset-password").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"token":"token-expirado","newPassword":"NuevaPass1!"}

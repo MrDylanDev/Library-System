@@ -1,15 +1,37 @@
 const api = {
   base: '/api',
 
+  timeoutMs: 15000,
+
+  _csrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  },
+
   async request(method, path, body = null) {
     const headers = { 'Content-Type': 'application/json' };
-    const token = Store.get('token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const token = this._csrfToken();
+      if (token) headers['X-XSRF-TOKEN'] = token;
+    }
 
-    const opts = { method, headers };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    const opts = { method, headers, credentials: 'include', signal: controller.signal };
     if (body) opts.body = JSON.stringify(body);
 
-    const res = await fetch(`${this.base}${path}`, opts);
+    let res;
+    try {
+      res = await fetch(`${this.base}${path}`, opts);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error('La solicitud tardó demasiado. Intentá de nuevo.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (res.status === 401) {
       Store.logout();
