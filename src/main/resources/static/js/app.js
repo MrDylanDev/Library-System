@@ -18,6 +18,10 @@ function App() {
         const wrapper = h('div', { className: 'container' });
         wrapper.appendChild(el);
         render(content, wrapper);
+      }).catch(err => {
+        const wrapper = h('div', { className: 'container' });
+        wrapper.appendChild(showAlert(err.message || 'Error al cargar la página.', 'error'));
+        render(content, wrapper);
       });
     };
   }
@@ -79,8 +83,8 @@ function App() {
   Router.start();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  Store.init();
+document.addEventListener('DOMContentLoaded', async () => {
+  await Store.boot();
   document.getElementById('navbar').appendChild(Navbar());
   App();
 });
