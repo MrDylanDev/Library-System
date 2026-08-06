@@ -20,7 +20,7 @@ function LoginPage() {
         email: emailInput.value,
         contrasena: passInput.value,
       });
-      Store.login(data.token, { id: data.id, email: data.email, rol: data.rol });
+      Store.login({ id: data.id, email: data.email, rol: data.rol });
       Router.navigate('/catalogo');
     } catch (err) {
       showError(err.message);
@@ -89,7 +89,7 @@ function RegisterPage() {
         dni: inputs.dni.value,
         telefono: inputs.telefono.value,
       });
-      Store.login(data.token, { id: data.id, email: data.email, rol: data.rol });
+      Store.login({ id: data.id, email: data.email, rol: data.rol });
       Router.navigate('/catalogo');
     } catch (err) {
       showError(err.message);
