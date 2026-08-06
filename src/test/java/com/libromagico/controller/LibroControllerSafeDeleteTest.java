@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -32,7 +33,7 @@ class LibroControllerSafeDeleteTest {
         doThrow(new OperacionInvalidaException("No se puede eliminar el libro porque tiene préstamos activos"))
                 .when(libroService).eliminar("9780132350884");
 
-        mockMvc.perform(delete("/api/libros/9780132350884"))
+        mockMvc.perform(delete("/api/libros/9780132350884").with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message")
                         .value("No se puede eliminar el libro porque tiene préstamos activos"));
@@ -43,7 +44,7 @@ class LibroControllerSafeDeleteTest {
     void eliminar_returns204_whenNoActiveLoans() throws Exception {
         doNothing().when(libroService).eliminar("9780201633610");
 
-        mockMvc.perform(delete("/api/libros/9780201633610"))
+        mockMvc.perform(delete("/api/libros/9780201633610").with(csrf()))
                 .andExpect(status().isNoContent());
     }
 }

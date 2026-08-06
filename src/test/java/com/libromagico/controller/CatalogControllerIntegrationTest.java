@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -61,7 +62,7 @@ class CatalogControllerIntegrationTest {
         librarian.setRol(RolUsuario.LIBRARIAN);
         usuarioRepository.save(librarian);
 
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"Biblio123!"}
@@ -75,14 +76,14 @@ class CatalogControllerIntegrationTest {
     @DisplayName("GET /api/catalogo - listar todos los libros sin autenticación")
     void listarCatalogoSinAuth() throws Exception {
         var auth = createLibrarianAndLogin();
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780132350884","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """))
                 .andExpect(status().isCreated());
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -99,7 +100,7 @@ class CatalogControllerIntegrationTest {
     @DisplayName("GET /api/catalogo/{isbn} - detalle de libro por ISBN")
     void detalleLibroPorIsbn() throws Exception {
         var auth = createLibrarianAndLogin();
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -118,14 +119,14 @@ class CatalogControllerIntegrationTest {
     @DisplayName("GET /api/catalogo/buscar?q=keyword - buscar libros por palabra clave")
     void buscarLibrosPorKeyword() throws Exception {
         var auth = createLibrarianAndLogin();
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780132350884","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """))
                 .andExpect(status().isCreated());
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + auth.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

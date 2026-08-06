@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -52,7 +53,7 @@ class AdminControllerIntegrationTest {
     }
 
     private AuthResponse login(String email, String password) throws Exception {
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"%s"}
@@ -121,7 +122,7 @@ class AdminControllerIntegrationTest {
         var admin = createAdminAndLogin();
         var targetUser = createUser(uniqueEmail("target"), "11111111", RolUsuario.USER, "Pass123!");
 
-        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol")
+        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol").with(csrf())
                         .header("Authorization", "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -137,7 +138,7 @@ class AdminControllerIntegrationTest {
         var admin = createAdminAndLogin();
         var targetUser = createUser(uniqueEmail("target"), "22222222", RolUsuario.USER, "Pass123!");
 
-        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/estado")
+        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/estado").with(csrf())
                         .header("Authorization", "Bearer " + admin.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -167,7 +168,7 @@ class AdminControllerIntegrationTest {
         var user = createUser(uniqueEmail("multauser2"), "44444444", RolUsuario.USER, "Pass123!");
         var multa = createMulta(user);
 
-        mockMvc.perform(put("/api/admin/multas/" + multa.getId() + "/pagar")
+        mockMvc.perform(put("/api/admin/multas/" + multa.getId() + "/pagar").with(csrf())
                         .header("Authorization", "Bearer " + admin.token()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PAGADO"));
@@ -179,7 +180,7 @@ class AdminControllerIntegrationTest {
         var user = createUserAndLogin();
         var targetUser = createUser(uniqueEmail("target2"), "55555555", RolUsuario.USER, "Pass123!");
 
-        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol")
+        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol").with(csrf())
                         .header("Authorization", "Bearer " + user.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -193,7 +194,7 @@ class AdminControllerIntegrationTest {
         var librarian = createLibrarianAndLogin();
         var targetUser = createUser(uniqueEmail("target3"), "66666666", RolUsuario.USER, "Pass123!");
 
-        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol")
+        mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol").with(csrf())
                         .header("Authorization", "Bearer " + librarian.token())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

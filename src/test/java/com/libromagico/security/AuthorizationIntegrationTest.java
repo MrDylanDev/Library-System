@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -85,7 +86,7 @@ class AuthorizationIntegrationTest {
     private String createUserAndLogin() throws Exception {
         String email = uniqueEmail("user");
         createAndSaveUser(email, "11111111", RolUsuario.USER, "User123!");
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"User123!"}
@@ -98,7 +99,7 @@ class AuthorizationIntegrationTest {
     private String createLibrarianAndLogin() throws Exception {
         String email = uniqueEmail("biblio");
         createAndSaveUser(email, "22222222", RolUsuario.LIBRARIAN, "Biblio123!");
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"Biblio123!"}
@@ -111,7 +112,7 @@ class AuthorizationIntegrationTest {
     private String createAdminAndLogin() throws Exception {
         String email = uniqueEmail("admin");
         createAndSaveUser(email, "33333333", RolUsuario.ADMIN, "Admin123!");
-        var response = mockMvc.perform(post("/api/auth/login")
+        var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"email":"%s","contrasena":"Admin123!"}
@@ -123,7 +124,7 @@ class AuthorizationIntegrationTest {
 
     private String createBook(String token) throws Exception {
         var isbn = "9780132350884";
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -144,7 +145,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("USER: POST /api/libros -> 403")
     void userPostLibros() throws Exception {
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -156,7 +157,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("USER: PUT /api/libros/{isbn} -> 403")
     void userPutLibros() throws Exception {
-        mockMvc.perform(put("/api/libros/" + bookIsbn)
+        mockMvc.perform(put("/api/libros/" + bookIsbn).with(csrf())
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -168,7 +169,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("USER: DELETE /api/libros/{isbn} -> 403")
     void userDeleteLibros() throws Exception {
-        mockMvc.perform(delete("/api/libros/" + bookIsbn)
+        mockMvc.perform(delete("/api/libros/" + bookIsbn).with(csrf())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isForbidden());
     }
@@ -184,7 +185,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("USER: POST /api/prestamos -> 200")
     void userPostPrestamos() throws Exception {
-        mockMvc.perform(post("/api/prestamos")
+        mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -204,7 +205,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("USER: PUT /api/admin/** -> 403")
     void userPutAdmin() throws Exception {
-        mockMvc.perform(put("/api/admin/usuarios/1/rol")
+        mockMvc.perform(put("/api/admin/usuarios/1/rol").with(csrf())
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -223,7 +224,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("LIBRARIAN: POST /api/libros -> 200")
     void librarianPostLibros() throws Exception {
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -235,7 +236,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("LIBRARIAN: PUT /api/libros/{isbn} -> 200")
     void librarianPutLibros() throws Exception {
-        mockMvc.perform(put("/api/libros/" + bookIsbn)
+        mockMvc.perform(put("/api/libros/" + bookIsbn).with(csrf())
                         .header("Authorization", "Bearer " + librarianToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -248,7 +249,7 @@ class AuthorizationIntegrationTest {
     @DisplayName("LIBRARIAN: DELETE /api/libros/{isbn} -> 204")
     void librarianDeleteLibros() throws Exception {
         var isbn = "9780201633610";
-        mockMvc.perform(post("/api/libros")
+        mockMvc.perform(post("/api/libros").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -256,7 +257,7 @@ class AuthorizationIntegrationTest {
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(delete("/api/libros/" + isbn)
+        mockMvc.perform(delete("/api/libros/" + isbn).with(csrf())
                         .header("Authorization", "Bearer " + librarianToken))
                 .andExpect(status().isNoContent());
     }
@@ -272,7 +273,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("LIBRARIAN: PUT /api/admin/** -> 403")
     void librarianPutAdmin() throws Exception {
-        mockMvc.perform(put("/api/admin/usuarios/1/rol")
+        mockMvc.perform(put("/api/admin/usuarios/1/rol").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -283,7 +284,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("LIBRARIAN: POST /api/prestamos -> 200")
     void librarianPostPrestamos() throws Exception {
-        mockMvc.perform(post("/api/prestamos")
+        mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -295,7 +296,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("LIBRARIAN: PUT /api/prestamos/{id}/devolucion -> 200")
     void librarianPutDevolucion() throws Exception {
-        var prestamoResponse = mockMvc.perform(post("/api/prestamos")
+        var prestamoResponse = mockMvc.perform(post("/api/prestamos").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -306,7 +307,7 @@ class AuthorizationIntegrationTest {
         var prestamoBody = objectMapper.readValue(prestamoResponse.getResponse().getContentAsString(), java.util.Map.class);
         var prestamoId = ((Number) prestamoBody.get("id")).longValue();
 
-        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion")
+        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken))
                 .andExpect(status().isOk());
     }
@@ -314,7 +315,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("ADMIN: PUT /api/admin/usuarios/{id}/rol -> 200")
     void adminPutRol() throws Exception {
-        mockMvc.perform(put("/api/admin/usuarios/" + userId + "/rol")
+        mockMvc.perform(put("/api/admin/usuarios/" + userId + "/rol").with(csrf())
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -326,7 +327,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("ADMIN: PUT /api/admin/usuarios/{id}/estado -> 200")
     void adminPutEstado() throws Exception {
-        mockMvc.perform(put("/api/admin/usuarios/" + userId + "/estado")
+        mockMvc.perform(put("/api/admin/usuarios/" + userId + "/estado").with(csrf())
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -346,7 +347,7 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("ADMIN: PUT /api/admin/multas/{id}/pagar -> 404 (multa no existe)")
     void adminPutMultasPagar() throws Exception {
-        mockMvc.perform(put("/api/admin/multas/999/pagar")
+        mockMvc.perform(put("/api/admin/multas/999/pagar").with(csrf())
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
     }
