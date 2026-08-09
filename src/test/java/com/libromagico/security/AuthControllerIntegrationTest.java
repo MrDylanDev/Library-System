@@ -1,7 +1,6 @@
 package com.libromagico.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libromagico.dto.AuthResponse;
+import com.libromagico.TestAuthSupport;
 import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
@@ -35,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private PrestamoRepository prestamoRepository;
@@ -70,10 +68,7 @@ class AuthControllerIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
-        var authResponse = objectMapper.readValue(
-                response.getResponse().getContentAsString(),
-                AuthResponse.class);
-        return authResponse.token();
+        return TestAuthSupport.extractToken(response);
     }
 
     @Test

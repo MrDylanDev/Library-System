@@ -1,7 +1,6 @@
 package com.libromagico;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libromagico.dto.AuthResponse;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
 import com.libromagico.repository.LibroRepository;
@@ -52,7 +51,7 @@ class LibroMagicoIntegrationTest {
         return prefix + "." + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
     }
 
-    private AuthResponse createLibrarianAndLogin() throws Exception {
+    private String createLibrarianAndLogin() throws Exception {
         String email = uniqueEmail("biblio");
         var librarian = new Usuario();
         librarian.setNombre("Bibliotecario");
@@ -70,10 +69,10 @@ class LibroMagicoIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class);
+        return TestAuthSupport.extractToken(response);
     }
 
-    private AuthResponse registerUser(String email) throws Exception {
+    private String registerUser(String email) throws Exception {
         var response = mockMvc.perform(post("/api/auth/register").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -81,7 +80,7 @@ class LibroMagicoIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isCreated())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class);
+        return TestAuthSupport.extractToken(response);
     }
 
     @Test
@@ -94,9 +93,13 @@ class LibroMagicoIntegrationTest {
                             {"nombre":"Dylan","email":"%s","contrasena":"Test123!","dni":"12345678","telefono":"+5491122334455"}
                             """.formatted(email)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").exists())
+                .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.email").value(email))
                 .andExpect(jsonPath("$.rol").value("USER"));
+    }
+
+    private Long userId(String email) {
+        return usuarioRepository.findByEmail(email).orElseThrow().getId();
     }
 
     @Test
@@ -142,7 +145,7 @@ class LibroMagicoIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rol").value("LIBRARIAN"))
-                .andExpect(jsonPath("$.token").exists());
+                .andExpect(jsonPath("$.id").exists());
     }
 
     @Test
@@ -152,7 +155,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -170,7 +173,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -180,7 +183,7 @@ class LibroMagicoIntegrationTest {
         var user = registerUser(uniqueEmail("user"));
 
         mockMvc.perform(get("/api/libros")
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].titulo").value("Clean Code"));
@@ -193,7 +196,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -203,7 +206,7 @@ class LibroMagicoIntegrationTest {
         var user = registerUser(uniqueEmail("user"));
 
         mockMvc.perform(get("/api/libros/" + isbn)
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.autor").value("Robert Martin"));
     }
@@ -215,7 +218,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -225,7 +228,7 @@ class LibroMagicoIntegrationTest {
         var user = registerUser(uniqueEmail("user"));
 
         mockMvc.perform(get("/api/libros/buscar?autor=robert")
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
     }
@@ -237,7 +240,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -245,7 +248,7 @@ class LibroMagicoIntegrationTest {
                 .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/libros/" + isbn).with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code 2nd Ed","autor":"Robert C. Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -261,7 +264,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -271,7 +274,7 @@ class LibroMagicoIntegrationTest {
         var user = registerUser(uniqueEmail("user"));
 
         mockMvc.perform(delete("/api/libros/" + isbn).with(csrf())
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isForbidden());
     }
 
@@ -281,7 +284,7 @@ class LibroMagicoIntegrationTest {
         var user = registerUser(uniqueEmail("user"));
 
         mockMvc.perform(get("/api/libros/9999999999")
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Libro no encontrado: 9999999999"));
     }
@@ -293,7 +296,7 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780201633610";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Design Patterns","autor":"Gang of Four","categoria":"Software","añoPub":1994,"editorial":"Addison-Wesley"}
@@ -310,21 +313,22 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        var user = registerUser(uniqueEmail("user"));
+        var userEmail = uniqueEmail("user");
+        var user = registerUser(userEmail);
 
         mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"usuarioId":%d,"libroIsbn":"%s"}
-                            """.formatted(user.id(), isbn)))
+                            """.formatted(userId(userEmail), isbn)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.estado").value("ACTIVO"));
@@ -337,31 +341,32 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        var user = registerUser(uniqueEmail("user"));
+        var userEmail = uniqueEmail("user");
+        var user = registerUser(userEmail);
 
         // First loan succeeds
         mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"usuarioId":%d,"libroIsbn":"%s"}
-                            """.formatted(user.id(), isbn)))
+                            """.formatted(userId(userEmail), isbn)))
                 .andExpect(status().isCreated());
 
         // Duplicate loan is rejected
         mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"usuarioId":%d,"libroIsbn":"%s"}
-                            """.formatted(user.id(), isbn)))
+                            """.formatted(userId(userEmail), isbn)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("El usuario ya tiene un préstamo activo de este libro"));
     }
@@ -373,25 +378,26 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        var user = registerUser(uniqueEmail("user"));
+        var userEmail = uniqueEmail("user");
+        var user = registerUser(userEmail);
 
         mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"usuarioId":%d,"libroIsbn":"%s"}
-                            """.formatted(user.id(), isbn)))
+                            """.formatted(userId(userEmail), isbn)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/prestamos/usuarios/" + user.id())
-                        .header("Authorization", "Bearer " + user.token()))
+        mockMvc.perform(get("/api/prestamos/usuarios/" + userId(userEmail))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].libro.titulo").value("Clean Code"));
@@ -404,21 +410,22 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        var user = registerUser(uniqueEmail("user"));
+        var userEmail = uniqueEmail("user");
+        var user = registerUser(userEmail);
 
         var prestamoResponse = mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"usuarioId":%d,"libroIsbn":"%s"}
-                            """.formatted(user.id(), isbn)))
+                            """.formatted(userId(userEmail), isbn)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -426,7 +433,7 @@ class LibroMagicoIntegrationTest {
         var prestamoId = ((Number) prestamoBody.get("id")).longValue();
 
         mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token()))
+                        .header("Authorization", "Bearer " + librarian))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("DEVUELTO"))
                 .andExpect(jsonPath("$.fechaEntregaReal").exists());
@@ -439,21 +446,22 @@ class LibroMagicoIntegrationTest {
         var isbn = "9780132350884";
 
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"%s","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
 
-        var user = registerUser(uniqueEmail("user"));
+        var userEmail = uniqueEmail("user");
+        var user = registerUser(userEmail);
 
         var prestamoResponse = mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"usuarioId":%d,"libroIsbn":"%s"}
-                            """.formatted(user.id(), isbn)))
+                            """.formatted(userId(userEmail), isbn)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -462,12 +470,12 @@ class LibroMagicoIntegrationTest {
 
         // Return the book first
         mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token()))
+                        .header("Authorization", "Bearer " + librarian))
                 .andExpect(status().isOk());
 
         // Second return is rejected
         mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token()))
+                        .header("Authorization", "Bearer " + librarian))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("El préstamo ya fue devuelto"));
     }
@@ -486,20 +494,17 @@ class LibroMagicoIntegrationTest {
         var saved = usuarioRepository.save(librarian);
         var librarianId = saved.getId();
 
-        var auth = objectMapper.readValue(
-                mockMvc.perform(post("/api/auth/login").with(csrf())
+        var loginResponse = mockMvc.perform(post("/api/auth/login").with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                     {"email":"%s","contrasena":"Biblio123!"}
                                     """.formatted(email)))
                         .andExpect(status().isOk())
-                        .andReturn()
-                        .getResponse()
-                        .getContentAsString(),
-                AuthResponse.class);
+                        .andReturn();
+        var auth = TestAuthSupport.extractToken(loginResponse);
 
         mockMvc.perform(get("/api/usuarios/" + librarianId)
-                        .header("Authorization", "Bearer " + auth.token()))
+                        .header("Authorization", "Bearer " + auth))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(librarianId))
                 .andExpect(jsonPath("$.nombre").value("Bibliotecario"))
