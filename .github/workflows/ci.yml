@@ -56,16 +56,17 @@ jobs:
         run: |
           docker compose up -d --build
           # Esperar a que el healthcheck de compose marque la app como healthy
+          APP_HEALTHY=false
           for i in $(seq 1 90); do
             status=$(docker inspect --format '{{.State.Health.Status}}' libromagico-app 2>/dev/null || echo "starting")
             echo "poll $i: app health=$status"
             if [ "$status" = "healthy" ]; then
-              echo "APP_HEALTHY=true" >> "$GITHUB_ENV"
+              APP_HEALTHY=true
               break
             fi
             sleep 5
           done
-          if [ -z "$APP_HEALTHY" ]; then
+          if [ "$APP_HEALTHY" != "true" ]; then
             echo "::error::La app no llegó a healthy a tiempo"
             docker compose ps
             docker logs libromagico-app --tail 50
