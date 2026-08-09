@@ -11,3 +11,5 @@ node_modules/
 .codegraph/
 __pycache__/
 *.pyc
+.env
+.env.prod

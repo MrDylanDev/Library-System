@@ -1,7 +1,6 @@
 package com.libromagico.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libromagico.dto.AuthResponse;
+import com.libromagico.TestAuthSupport;
 import com.libromagico.model.*;
 import com.libromagico.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private LibroRepository libroRepository;
@@ -52,7 +50,7 @@ class AdminControllerIntegrationTest {
         return prefix + "." + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
     }
 
-    private AuthResponse login(String email, String password) throws Exception {
+    private String login(String email, String password) throws Exception {
         var response = mockMvc.perform(post("/api/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -60,7 +58,7 @@ class AdminControllerIntegrationTest {
                             """.formatted(email, password)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class);
+        return TestAuthSupport.extractToken(response);
     }
 
     private Usuario createUser(String email, String dni, RolUsuario rol, String password) {
@@ -74,19 +72,19 @@ class AdminControllerIntegrationTest {
         return usuarioRepository.save(user);
     }
 
-    private AuthResponse createAdminAndLogin() throws Exception {
+    private String createAdminAndLogin() throws Exception {
         String email = uniqueEmail("admin");
         createUser(email, "99999999", RolUsuario.ADMIN, "Admin123!");
         return login(email, "Admin123!");
     }
 
-    private AuthResponse createUserAndLogin() throws Exception {
+    private String createUserAndLogin() throws Exception {
         String email = uniqueEmail("user");
         createUser(email, "88888888", RolUsuario.USER, "User123!");
         return login(email, "User123!");
     }
 
-    private AuthResponse createLibrarianAndLogin() throws Exception {
+    private String createLibrarianAndLogin() throws Exception {
         String email = uniqueEmail("biblio");
         createUser(email, "77777777", RolUsuario.LIBRARIAN, "Biblio123!");
         return login(email, "Biblio123!");
@@ -123,7 +121,7 @@ class AdminControllerIntegrationTest {
         var targetUser = createUser(uniqueEmail("target"), "11111111", RolUsuario.USER, "Pass123!");
 
         mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol").with(csrf())
-                        .header("Authorization", "Bearer " + admin.token())
+                        .header("Authorization", "Bearer " + admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"rol":"LIBRARIAN"}"""))
@@ -139,7 +137,7 @@ class AdminControllerIntegrationTest {
         var targetUser = createUser(uniqueEmail("target"), "22222222", RolUsuario.USER, "Pass123!");
 
         mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/estado").with(csrf())
-                        .header("Authorization", "Bearer " + admin.token())
+                        .header("Authorization", "Bearer " + admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"estado":"BLOQUEADO"}"""))
@@ -156,7 +154,7 @@ class AdminControllerIntegrationTest {
         createMulta(user);
 
         mockMvc.perform(get("/api/admin/multas")
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
     }
@@ -169,7 +167,7 @@ class AdminControllerIntegrationTest {
         var multa = createMulta(user);
 
         mockMvc.perform(put("/api/admin/multas/" + multa.getId() + "/pagar").with(csrf())
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("PAGADO"));
     }
@@ -181,7 +179,7 @@ class AdminControllerIntegrationTest {
         var targetUser = createUser(uniqueEmail("target2"), "55555555", RolUsuario.USER, "Pass123!");
 
         mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol").with(csrf())
-                        .header("Authorization", "Bearer " + user.token())
+                        .header("Authorization", "Bearer " + user)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"rol":"LIBRARIAN"}"""))
@@ -195,7 +193,7 @@ class AdminControllerIntegrationTest {
         var targetUser = createUser(uniqueEmail("target3"), "66666666", RolUsuario.USER, "Pass123!");
 
         mockMvc.perform(put("/api/admin/usuarios/" + targetUser.getId() + "/rol").with(csrf())
-                        .header("Authorization", "Bearer " + librarian.token())
+                        .header("Authorization", "Bearer " + librarian)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"rol":"LIBRARIAN"}"""))
@@ -208,7 +206,7 @@ class AdminControllerIntegrationTest {
         var user = createUserAndLogin();
 
         mockMvc.perform(get("/api/admin/multas")
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isForbidden());
     }
 
@@ -218,7 +216,7 @@ class AdminControllerIntegrationTest {
         var librarian = createLibrarianAndLogin();
 
         mockMvc.perform(get("/api/admin/multas")
-                        .header("Authorization", "Bearer " + librarian.token()))
+                        .header("Authorization", "Bearer " + librarian))
                 .andExpect(status().isForbidden());
     }
 
@@ -249,7 +247,7 @@ class AdminControllerIntegrationTest {
         createPrestamo(user, EstadoPrestamo.DEVUELTO);
 
         mockMvc.perform(get("/api/admin/prestamos")
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2));
     }
@@ -262,7 +260,7 @@ class AdminControllerIntegrationTest {
         createPrestamo(user, EstadoPrestamo.ACTIVO);
 
         mockMvc.perform(get("/api/admin/prestamos")
-                        .header("Authorization", "Bearer " + librarian.token()))
+                        .header("Authorization", "Bearer " + librarian))
                 .andExpect(status().isOk());
     }
 
@@ -272,7 +270,7 @@ class AdminControllerIntegrationTest {
         var user = createUserAndLogin();
 
         mockMvc.perform(get("/api/admin/prestamos")
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isForbidden());
     }
 
@@ -292,7 +290,7 @@ class AdminControllerIntegrationTest {
         createPrestamo(user, EstadoPrestamo.DEVUELTO);
 
         mockMvc.perform(get("/api/admin/prestamos?estado=DEVUELTO")
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].estado").value("DEVUELTO"));
@@ -306,7 +304,7 @@ class AdminControllerIntegrationTest {
         createPrestamo(user, EstadoPrestamo.DEVUELTO);
 
         mockMvc.perform(get("/api/admin/prestamos?estado=ATRASADO")
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(0));
     }
@@ -317,7 +315,7 @@ class AdminControllerIntegrationTest {
         var admin = createAdminAndLogin();
 
         mockMvc.perform(get("/api/admin/prestamos?estado=INVALIDO")
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isBadRequest());
     }
 
@@ -331,7 +329,7 @@ class AdminControllerIntegrationTest {
         createPrestamo(user, EstadoPrestamo.ACTIVO);
 
         mockMvc.perform(get("/api/admin/dashboard")
-                        .header("Authorization", "Bearer " + admin.token()))
+                        .header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalLibros").isNumber())
                 .andExpect(jsonPath("$.librosDisponibles").isNumber())
@@ -345,7 +343,7 @@ class AdminControllerIntegrationTest {
         var librarian = createLibrarianAndLogin();
 
         mockMvc.perform(get("/api/admin/dashboard")
-                        .header("Authorization", "Bearer " + librarian.token()))
+                        .header("Authorization", "Bearer " + librarian))
                 .andExpect(status().isOk());
     }
 
@@ -355,7 +353,7 @@ class AdminControllerIntegrationTest {
         var user = createUserAndLogin();
 
         mockMvc.perform(get("/api/admin/dashboard")
-                        .header("Authorization", "Bearer " + user.token()))
+                        .header("Authorization", "Bearer " + user))
                 .andExpect(status().isForbidden());
     }
 }

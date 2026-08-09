@@ -1,7 +1,7 @@
 package com.libromagico.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libromagico.dto.AuthResponse;
+import com.libromagico.TestAuthSupport;
 import com.libromagico.model.*;
 import com.libromagico.repository.LibroRepository;
 import com.libromagico.repository.PrestamoRepository;
@@ -93,7 +93,7 @@ class AuthorizationIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class).token();
+        return TestAuthSupport.extractToken(response);
     }
 
     private String createLibrarianAndLogin() throws Exception {
@@ -106,7 +106,7 @@ class AuthorizationIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class).token();
+        return TestAuthSupport.extractToken(response);
     }
 
     private String createAdminAndLogin() throws Exception {
@@ -119,7 +119,7 @@ class AuthorizationIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class).token();
+        return TestAuthSupport.extractToken(response);
     }
 
     private String createBook(String token) throws Exception {
@@ -132,6 +132,25 @@ class AuthorizationIntegrationTest {
                             """.formatted(isbn)))
                 .andExpect(status().isCreated());
         return isbn;
+    }
+
+    private Long createOtherUserAndGetId() {
+        String email = uniqueEmail("otro");
+        createAndSaveUser(email, "44444444", RolUsuario.USER, "Otro123!");
+        return usuarioRepository.findByEmail(email).orElseThrow().getId();
+    }
+
+    private Long createPrestamo(String token, Long usuarioId, String isbn) throws Exception {
+        var response = mockMvc.perform(post("/api/prestamos").with(csrf())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"usuarioId":%s,"libroIsbn":"%s"}
+                            """.formatted(usuarioId, isbn)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        var prestamoBody = objectMapper.readValue(response.getResponse().getContentAsString(), java.util.Map.class);
+        return ((Number) prestamoBody.get("id")).longValue();
     }
 
     @Test
@@ -214,6 +233,66 @@ class AuthorizationIntegrationTest {
     }
 
     @Test
+    @DisplayName("USER: GET /api/prestamos -> 403")
+    void userGetAllPrestamos() throws Exception {
+        mockMvc.perform(get("/api/prestamos")
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("USER: GET /api/prestamos/usuarios/{id ajeno} -> 403")
+    void userGetHistorialAjeno() throws Exception {
+        var otroId = createOtherUserAndGetId();
+        mockMvc.perform(get("/api/prestamos/usuarios/" + otroId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("USER: POST /api/prestamos con usuarioId ajeno -> 403")
+    void userPostPrestamoAjeno() throws Exception {
+        var otroId = createOtherUserAndGetId();
+        mockMvc.perform(post("/api/prestamos").with(csrf())
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"usuarioId":%s,"libroIsbn":"%s"}
+                            """.formatted(otroId, bookIsbn)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("USER: PUT /api/prestamos/{id}/devolucion de préstamo ajeno -> 403")
+    void userDevolverPrestamoAjeno() throws Exception {
+        var otroId = createOtherUserAndGetId();
+        var prestamoId = createPrestamo(librarianToken, otroId, bookIsbn);
+
+        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("USER: PUT /api/prestamos/{id}/devolucion de préstamo propio -> 200")
+    void userDevolverPrestamoPropio() throws Exception {
+        var prestamoId = createPrestamo(userToken, userId, bookIsbn);
+
+        mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("DEVUELTO"));
+    }
+
+    @Test
+    @DisplayName("LIBRARIAN: GET /api/prestamos -> 200")
+    void librarianGetAllPrestamos() throws Exception {
+        mockMvc.perform(get("/api/prestamos")
+                        .header("Authorization", "Bearer " + librarianToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("LIBRARIAN: GET /api/libros -> 200")
     void librarianGetLibros() throws Exception {
         mockMvc.perform(get("/api/libros")
@@ -284,28 +363,13 @@ class AuthorizationIntegrationTest {
     @Test
     @DisplayName("LIBRARIAN: POST /api/prestamos -> 200")
     void librarianPostPrestamos() throws Exception {
-        mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + librarianToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {"usuarioId":%s,"libroIsbn":"%s"}
-                            """.formatted(userId, bookIsbn)))
-                .andExpect(status().isCreated());
+        createPrestamo(librarianToken, userId, bookIsbn);
     }
 
     @Test
     @DisplayName("LIBRARIAN: PUT /api/prestamos/{id}/devolucion -> 200")
     void librarianPutDevolucion() throws Exception {
-        var prestamoResponse = mockMvc.perform(post("/api/prestamos").with(csrf())
-                        .header("Authorization", "Bearer " + librarianToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {"usuarioId":%s,"libroIsbn":"%s"}
-                            """.formatted(userId, bookIsbn)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        var prestamoBody = objectMapper.readValue(prestamoResponse.getResponse().getContentAsString(), java.util.Map.class);
-        var prestamoId = ((Number) prestamoBody.get("id")).longValue();
+        var prestamoId = createPrestamo(librarianToken, userId, bookIsbn);
 
         mockMvc.perform(put("/api/prestamos/" + prestamoId + "/devolucion").with(csrf())
                         .header("Authorization", "Bearer " + librarianToken))

@@ -1,5 +1,6 @@
 package com.libromagico.controller;
 
+import com.libromagico.exception.AccesoDenegadoException;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.exception.RecursoNoEncontradoException;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OperacionInvalidaException.class)
     public ResponseEntity<Map<String, Object>> handleConflict(OperacionInvalidaException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(AccesoDenegadoException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccesoDenegadoException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

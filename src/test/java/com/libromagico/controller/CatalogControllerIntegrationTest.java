@@ -1,7 +1,6 @@
 package com.libromagico.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libromagico.dto.AuthResponse;
+import com.libromagico.TestAuthSupport;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
 import com.libromagico.repository.LibroRepository;
@@ -34,7 +33,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CatalogControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private LibroRepository libroRepository;
@@ -51,7 +49,7 @@ class CatalogControllerIntegrationTest {
         return prefix + "." + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
     }
 
-    private AuthResponse createLibrarianAndLogin() throws Exception {
+    private String createLibrarianAndLogin() throws Exception {
         String email = uniqueEmail("biblio");
         var librarian = new Usuario();
         librarian.setNombre("Bibliotecario");
@@ -69,7 +67,7 @@ class CatalogControllerIntegrationTest {
                             """.formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class);
+        return TestAuthSupport.extractToken(response);
     }
 
     @Test
@@ -77,14 +75,14 @@ class CatalogControllerIntegrationTest {
     void listarCatalogoSinAuth() throws Exception {
         var auth = createLibrarianAndLogin();
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780132350884","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """))
                 .andExpect(status().isCreated());
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780201633610","titulo":"Design Patterns","autor":"Gang of Four","categoria":"Software","añoPub":1994,"editorial":"Addison-Wesley"}
@@ -101,7 +99,7 @@ class CatalogControllerIntegrationTest {
     void detalleLibroPorIsbn() throws Exception {
         var auth = createLibrarianAndLogin();
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780132350884","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
@@ -120,14 +118,14 @@ class CatalogControllerIntegrationTest {
     void buscarLibrosPorKeyword() throws Exception {
         var auth = createLibrarianAndLogin();
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780132350884","titulo":"Clean Code","autor":"Robert Martin","categoria":"Software","añoPub":2008,"editorial":"Prentice Hall"}
                             """))
                 .andExpect(status().isCreated());
         mockMvc.perform(post("/api/libros").with(csrf())
-                        .header("Authorization", "Bearer " + auth.token())
+                        .header("Authorization", "Bearer " + auth)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {"isbn":"9780201633610","titulo":"Design Patterns","autor":"Gang of Four","categoria":"Software","añoPub":1994,"editorial":"Addison-Wesley"}

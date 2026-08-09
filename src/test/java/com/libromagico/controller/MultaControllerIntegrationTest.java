@@ -1,7 +1,6 @@
 package com.libromagico.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libromagico.dto.AuthResponse;
+import com.libromagico.TestAuthSupport;
 import com.libromagico.model.*;
 import com.libromagico.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +33,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MultaControllerIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private LibroRepository libroRepository;
@@ -74,7 +72,7 @@ class MultaControllerIntegrationTest {
                             """.formatted(userEmail, userPassword)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readValue(response.getResponse().getContentAsString(), AuthResponse.class).token();
+        return TestAuthSupport.extractToken(response);
     }
 
     private void createMultasParaUsuario(Long usuarioId, int pendientes, int pagadas) {
@@ -303,8 +301,7 @@ class MultaControllerIntegrationTest {
                             """.formatted(otherEmail, "Other123!")))
                 .andExpect(status().isOk())
                 .andReturn();
-        String token2 = objectMapper.readValue(
-                loginResponse.getResponse().getContentAsString(), AuthResponse.class).token();
+        String token2 = TestAuthSupport.extractToken(loginResponse);
 
         // Login as user2 and try to pay user1's multa
         mockMvc.perform(put("/api/multas/{id}/pagar", multaId).with(csrf())

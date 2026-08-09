@@ -65,7 +65,7 @@ public class AuthController {
         String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getRol().name());
 
         response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie(token).toString());
-        return ResponseEntity.ok(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
+        return ResponseEntity.ok(new AuthResponse(usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
     }
 
     @PostMapping("/register")
@@ -75,7 +75,7 @@ public class AuthController {
         String token = tokenProvider.generateToken(usuario.getEmail(), usuario.getRol().name());
         response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie(token).toString());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
+                .body(new AuthResponse(usuario.getId(), usuario.getEmail(), usuario.getRol().name()));
     }
 
     @PostMapping("/logout")

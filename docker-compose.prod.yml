@@ -1,0 +1,66 @@
+# === COMPOSE DE PRODUCCIÓN — LibroMágico ===
+# Uso:
+#   1. cp .env.prod.example .env.prod   (y completar los secretos)
+#   2. docker compose --env-file .env.prod -f docker-compose.prod.yml -p libromagico up -d --build
+#
+# Diferencias clave vs. docker-compose.yml (desarrollo):
+#   - SPRING_PROFILES_ACTIVE=prod (cookie Secure, SMTP real, SQL oculto)
+#   - Sin volúmenes de ./src ni maven-repo: la imagen es autocontenida (multi-stage)
+#   - Sin MailHog
+#   - La base de datos NO expone puertos al host (solo red interna)
+#   - Secretos obligatorios vía .env.prod (fallan rápido si faltan: ${VAR:?})
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-libromagico}-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # --- Base de datos (red interna, sin puerto expuesto) ---
+      DB_URL: jdbc:postgresql://db:5432/libromagico
+      DB_USER: ${DB_USER:?DB_USER es obligatorio}
+      DB_PASS: ${DB_PASS:?DB_PASS es obligatorio}
+      # --- Seguridad ---
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS es obligatorio}
+      # --- Email (SMTP real) ---
+      APP_MAIL_ENABLED: "true"
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST es obligatorio}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@libromagico.com}
+      APP_BASE_URL: ${APP_BASE_URL:?APP_BASE_URL es obligatorio}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 4 http://localhost:8080/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-libromagico}-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: libromagico
+      POSTGRES_USER: ${DB_USER:?DB_USER es obligatorio}
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS es obligatorio}
+    volumes:
+      - postgres-data-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d libromagico"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data-prod:
