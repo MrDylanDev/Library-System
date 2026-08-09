@@ -1,0 +1,104 @@
+# === CI — LibroMágico ===
+# Ejecuta en cada push y pull request:
+#   1. Tests Java (suite completa con Flyway/H2)
+#   2. Suite E2E de Playwright contra el stack real (PostgreSQL + MailHog)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # ---------------------------------------------------------------
+  # 1. Tests de backend (Java / Maven)
+  # ---------------------------------------------------------------
+  test:
+    name: Backend tests (Maven)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run backend tests
+        run: mvn -B test
+
+      - name: Upload test reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-reports
+          path: target/surefire-reports/
+
+  # ---------------------------------------------------------------
+  # 2. E2E de Playwright contra el stack real (app + postgres + mailhog)
+  # ---------------------------------------------------------------
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      # Limpieza previa por si el runner quedó con contenedores de un run cancelado.
+      - name: Clean leftover stack (idempotent)
+        run: docker compose down -v || true
+
+      # Levantar el stack dev con datos frescos (volumen nuevo por run).
+      # El perfil dev siembra usuarios/libros/deudas y usa MailHog (email de reset).
+      - name: Start app stack (PostgreSQL + MailHog)
+        run: |
+          docker compose up -d --build
+          # Esperar a que el healthcheck de compose marque la app como healthy
+          for i in $(seq 1 90); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' libromagico-app 2>/dev/null || echo "starting")
+            echo "poll $i: app health=$status"
+            if [ "$status" = "healthy" ]; then
+              echo "APP_HEALTHY=true" >> "$GITHUB_ENV"
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$APP_HEALTHY" ]; then
+            echo "::error::La app no llegó a healthy a tiempo"
+            docker compose ps
+            docker logs libromagico-app --tail 50
+            exit 1
+          fi
+          curl -fsS http://localhost:8080/api/health
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install E2E dependencies
+        working-directory: tests/e2e
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install chromium --with-deps
+
+      - name: Run E2E suite
+        working-directory: tests/e2e
+        run: |
+          # pipefail: si pytest falla, el job falla (tee no enmascara el exit code)
+          set -o pipefail
+          pytest -v | tee e2e-report.txt
+
+      - name: Upload E2E report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: tests/e2e/e2e-report.txt
+          if-no-files-found: ignore
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v

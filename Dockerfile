@@ -13,6 +13,7 @@ RUN apk add --no-cache curl bash && \
     addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
+RUN mkdir -p /app/logs && chown appuser:appgroup /app/logs
 COPY --from=builder /build/target/libromagico-0.1.0.jar /app/libromagico.jar
 
 ENV SPRING_PROFILES_ACTIVE=prod
