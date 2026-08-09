@@ -1,3 +1,10 @@
+-- ============================================================
+-- DEPRECADO (referencia histórica)
+-- El esquema lo gestiona FLYWAY desde src/main/resources/db/migration.
+-- spring.sql.init.mode=never impide que este archivo se ejecute.
+-- NO editar: cualquier cambio de esquema va como nueva migración Vn.
+-- ============================================================
+
 -- Enums para PostgreSQL (opcional, pero recomendado)
 CREATE TYPE rol_usuario AS ENUM ('USER', 'LIBRARIAN', 'ADMIN');
 CREATE TYPE estado_usuario AS ENUM ('ACTIVO', 'BLOQUEADO');
