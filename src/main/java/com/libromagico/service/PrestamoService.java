@@ -93,6 +93,11 @@ public class PrestamoService {
         return saved;
     }
 
+    public Prestamo buscarPorId(Long prestamoId) {
+        return prestamoRepository.findById(prestamoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Préstamo no encontrado: " + prestamoId));
+    }
+
     public Page<Prestamo> historialPorUsuario(Long usuarioId, Pageable pageable) {
         var usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + usuarioId));

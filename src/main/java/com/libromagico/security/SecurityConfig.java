@@ -16,13 +16,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -51,11 +51,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/me").authenticated()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/catalogo/**").permitAll()
+                .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/", "/index.html", "/css/**", "/js/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/libros/**").hasAnyRole("USER", "LIBRARIAN", "ADMIN")
                 .requestMatchers("/api/libros/**").hasAnyRole("LIBRARIAN", "ADMIN")
                 .requestMatchers("/api/usuarios/**").hasAnyRole("LIBRARIAN", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/prestamos").hasAnyRole("LIBRARIAN", "ADMIN")
                 .requestMatchers("/api/prestamos/**").hasAnyRole("USER", "LIBRARIAN", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/admin/prestamos/**").hasAnyRole("LIBRARIAN", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/admin/libros/**").hasAnyRole("LIBRARIAN", "ADMIN")
@@ -64,16 +66,27 @@ public class SecurityConfig {
                 .requestMatchers("/api/multas/**").authenticated()
                 .anyRequest().authenticated()
             )
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint()))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authenticationEntryPoint())
+                .accessDeniedHandler(accessDeniedHandler()))
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    /**
+     * Handler CSRF para SPA con cookie. IMPORTANTE: usamos el handler plano
+     * (no {@code XorCsrfTokenRequestAttributeHandler}) porque en Spring Security 6.2
+     * el handler XOR espera el token XOR-encodado en el header, pero la cookie
+     * {@code XSRF-TOKEN} de {@code CookieCsrfTokenRepository} siempre contiene el
+     * token crudo — y el frontend (api.js) reenvía ese valor crudo. El handler XOR
+     * sin {@code setResponseTokenRepository} (que no existe en 6.2) producía 403 en
+     * toda petición que muta estado.
+     */
     @Bean
     public CsrfTokenRequestAttributeHandler csrfTokenRequestHandler() {
-        CsrfTokenRequestAttributeHandler handler = new XorCsrfTokenRequestAttributeHandler();
+        CsrfTokenRequestAttributeHandler handler = new CsrfTokenRequestAttributeHandler();
         handler.setCsrfRequestAttributeName(null);
         return handler;
     }
@@ -103,6 +116,22 @@ public class SecurityConfig {
                     "status", 401,
                     "error", "Unauthorized",
                     "message", authException.getMessage()
+                )
+            ));
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.getWriter().write(new ObjectMapper().writeValueAsString(
+                Map.of(
+                    "timestamp", LocalDateTime.now().toString(),
+                    "status", 403,
+                    "error", "Forbidden",
+                    "message", accessDeniedException.getMessage()
                 )
             ));
         };
