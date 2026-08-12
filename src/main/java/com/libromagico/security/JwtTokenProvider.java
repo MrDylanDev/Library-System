@@ -7,7 +7,10 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -25,12 +28,30 @@ public class JwtTokenProvider {
     public String generateToken(String email, String rol) {
         Date now = new Date();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .claim("rol", rol)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
                 .signWith(key)
                 .compact();
+    }
+
+    public String getTokenIdFromToken(String token) {
+        return parseClaims(token).getId();
+    }
+
+    public Date getIssuedAtFromToken(String token) {
+        return parseClaims(token).getIssuedAt();
+    }
+
+    public LocalDateTime getExpirationFromToken(String token) {
+        return parseClaims(token).getExpiration()
+                .toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
+    public long getExpirationMillis() {
+        return expiration;
     }
 
     public String getEmailFromToken(String token) {
