@@ -92,11 +92,19 @@ def page(browser: Browser):
 
 
 def wait_for_hash(page: Page, expected_hash: str, timeout: int = 15000):
-    """Espera a que la URL tenga el hash esperado (para SPA con # routing)."""
-    page.wait_for_function(
-        f"window.location.hash === '#{expected_hash}' || window.location.hash.startsWith('#{expected_hash}')",
-        timeout=timeout
-    )
+    """Espera a que la URL tenga el hash esperado (para SPA con # routing).
+
+    Pollea page.url desde Python en lugar de wait_for_function: Playwright
+    evalúa las strings JS con eval, que la Content-Security-Policy estricta
+    (script-src 'self' sin 'unsafe-eval') bloquea.
+    """
+    deadline = time.time() + timeout / 1000
+    while time.time() < deadline:
+        url_hash = page.url.split("#", 1)[-1] if "#" in page.url else ""
+        if url_hash == expected_hash or url_hash.startswith(expected_hash):
+            return
+        page.wait_for_timeout(200)
+    raise TimeoutError(f"El hash '#{expected_hash}' no apareció en {timeout}ms")
 
 
 def login(page: Page, email: str, password: str):
