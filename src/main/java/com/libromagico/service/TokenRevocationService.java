@@ -50,6 +50,10 @@ public class TokenRevocationService {
 
     @Transactional
     public void revocarTokensDeUsuario(String email) {
+        // Borrado masivo obligatorio (deleteByEmail derivado haría el DELETE en
+        // el flush, después del INSERT del marcador): el SQL debe ejecutarse ya,
+        // si no el marcador secundario chocaría con el UNIQUE de jti al repetir
+        // el reset del mismo email. Ver deleteByEmail en TokenRevocadoRepository.
         tokenRevocadoRepository.deleteByEmail(email);
 
         // Marcador por usuario: la denylist por jti no puede invalidar sesiones
