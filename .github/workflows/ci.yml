@@ -26,8 +26,17 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run backend tests
-        run: mvn -B test
+      - name: Run backend tests with coverage gate
+        # El perfil coverage ejecuta la suite completa y aplica la barrera
+        # JaCoCo (>=70% instrucciones) definida en pom.xml.
+        run: mvn -B -Pcoverage verify
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage
+          path: target/site/jacoco/
+          if-no-files-found: ignore
 
       - name: Upload test reports (on failure)
         if: failure()
