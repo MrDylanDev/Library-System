@@ -8,10 +8,15 @@ import com.libromagico.dto.ResetPasswordRequest;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.repository.UsuarioRepository;
 import com.libromagico.service.EmailService;
+import com.libromagico.service.TokenRevocationService;
 import com.libromagico.service.UsuarioService;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,11 +26,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -36,6 +44,7 @@ public class AuthController {
     private final UsuarioRepository usuarioRepository;
     private final UsuarioService usuarioService;
     private final EmailService emailService;
+    private final TokenRevocationService tokenRevocationService;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -79,11 +88,49 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletResponse response) {
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
         ResponseCookie delete = ResponseCookie.from("AuthToken", "")
                 .httpOnly(true).path("/").sameSite("Strict").secure(cookieSecure).maxAge(0).build();
         response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
+
+        revocarTokenDelRequest(request);
         return ResponseEntity.ok(Map.of("message", "Sesión cerrada"));
+    }
+
+    private void revocarTokenDelRequest(HttpServletRequest request) {
+        try {
+            String token = extraerToken(request);
+            if (token == null || !tokenProvider.validateToken(token)) {
+                return;
+            }
+            String jti = tokenProvider.getTokenIdFromToken(token);
+            String email = tokenProvider.getEmailFromToken(token);
+            LocalDateTime expiraEn = tokenProvider.getExpirationFromToken(token);
+            tokenRevocationService.revocarToken(jti, email, expiraEn);
+        } catch (JwtException | IllegalArgumentException e) {
+            // El token del request puede estar corrupto: el logout igual borra
+            // la cookie y responde OK.
+            log.warn("Token de logout inválido, se omite la revocación: {}", e.getMessage());
+        }
+    }
+
+    private String extraerToken(HttpServletRequest request) {
+        // Cookie httpOnly (SPA) tiene prioridad sobre el header Bearer.
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (JwtAuthenticationFilter.AUTH_COOKIE.equals(cookie.getName())
+                        && StringUtils.hasText(cookie.getValue())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        String bearer = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+        return null;
     }
 
     @GetMapping("/me")

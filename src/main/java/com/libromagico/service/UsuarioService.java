@@ -27,6 +27,7 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenRevocationService tokenRevocationService;
 
     @Transactional
     public Usuario register(RegisterRequest request) {
@@ -78,6 +79,10 @@ public class UsuarioService {
         usuario.setResetToken(null);
         usuario.setResetTokenExpiry(null);
         usuarioRepository.save(usuario);
+
+        // Invalida TODAS las sesiones previas del usuario al cambiar la contraseña.
+        tokenRevocationService.revocarTokensDeUsuario(usuario.getEmail());
+        log.info("Sesiones previas revocadas tras cambio de contraseña: usuario={}", usuario.getId());
         log.info("Contraseña restablecida: usuario={}", usuario.getId());
     }
 
