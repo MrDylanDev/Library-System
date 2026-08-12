@@ -56,6 +56,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/catalogo/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
+                // Actuator: solo health es público (healthcheck); el resto
+                // (info, metrics, env, etc.) queda reservado a ADMIN.
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/", "/index.html", "/css/**", "/js/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/libros/**").hasAnyRole("USER", "LIBRARIAN", "ADMIN")
                 .requestMatchers("/api/libros/**").hasAnyRole("LIBRARIAN", "ADMIN")

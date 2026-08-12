@@ -66,4 +66,25 @@ class SecurityHeadersTest {
                 .andExpect(header().string("Content-Security-Policy",
                     org.hamcrest.Matchers.containsString("default-src 'self'")));
     }
+
+    @Test
+    @DisplayName("Actuator /health es público (para healthcheck) y reporta UP")
+    void actuatorHealthPublico() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Actuator /metrics requiere autenticación (401 anónimo)")
+    void actuatorMetricsProtegido() throws Exception {
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Actuator /info requiere autenticación (401 anónimo)")
+    void actuatorInfoProtegido() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isUnauthorized());
+    }
 }
