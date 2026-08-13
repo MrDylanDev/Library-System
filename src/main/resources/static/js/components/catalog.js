@@ -10,16 +10,18 @@ async function CatalogPage() {
   searchBar.appendChild(h('button', { className: 'btn btn-primary' }, 'Buscar'));
 
   const grid = h('div', { className: 'book-grid' });
+  const pagination = h('div', { className: 'pagination' });
   const alertContainer = h('div');
 
-  async function loadBooks(query = '') {
+  async function loadBooks(query = '', page = 0) {
     grid.innerHTML = '';
+    pagination.innerHTML = '';
     try {
       let data;
       if (query) {
-        data = await api.get(`/catalogo/buscar?q=${encodeURIComponent(query)}`);
+        data = await api.get(`/catalogo/buscar?q=${encodeURIComponent(query)}&page=${page}`);
       } else {
-        data = await api.get('/catalogo');
+        data = await api.get(`/catalogo?page=${page}`);
       }
       const books = data.content || data;
       if (isEmpty(books)) {
@@ -27,9 +29,29 @@ async function CatalogPage() {
         return;
       }
       books.forEach(book => grid.appendChild(CatalogBookCard(book)));
+
+      const totalPages = data.totalPages != null ? data.totalPages : 1;
+      const number = data.number != null ? data.number : 0;
+      renderPagination(pagination, number, totalPages, query);
     } catch (err) {
       render(alertContainer, showAlert(err.message, 'error'));
     }
+  }
+
+  function renderPagination(container, number, totalPages, query) {
+    if (totalPages <= 1) return;
+
+    container.appendChild(h('button', {
+      className: 'btn btn-outline btn-sm pagination-prev',
+      disabled: number === 0,
+      onClick: () => { if (number > 0) loadBooks(query, number - 1); },
+    }, 'Anterior'));
+    container.appendChild(h('span', { className: 'pagination-info' }, `Página ${number + 1} de ${totalPages}`));
+    container.appendChild(h('button', {
+      className: 'btn btn-outline btn-sm pagination-next',
+      disabled: number + 1 >= totalPages,
+      onClick: () => { if (number + 1 < totalPages) loadBooks(query, number + 1); },
+    }, 'Siguiente'));
   }
 
   searchBar.querySelector('button').addEventListener('click', () => loadBooks(searchInput.value.trim()));
@@ -44,6 +66,7 @@ async function CatalogPage() {
   card.appendChild(searchBar);
   card.appendChild(alertContainer);
   card.appendChild(grid);
+  card.appendChild(pagination);
   container.appendChild(card);
 
   return container;

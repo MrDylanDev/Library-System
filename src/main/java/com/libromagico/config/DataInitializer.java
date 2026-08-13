@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -28,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        var libros = List.of(
+        var libros = new ArrayList<>(List.of(
                 createLibro("9780132350884", "Clean Code", "Robert C. Martin", "Software", 2008, "Prentice Hall"),
                 createLibro("9780201633610", "Design Patterns", "Gang of Four", "Software", 1994, "Addison-Wesley"),
                 createLibro("9780134685991", "Effective Java", "Joshua Bloch", "Software", 2018, "Addison-Wesley"),
@@ -38,7 +39,20 @@ public class DataInitializer implements CommandLineRunner {
                 createLibro("9781617296208", "Spring in Action", "Craig Walls", "Software", 2022, "Manning"),
                 createLibro("9781449355739", "Learning Python", "Mark Lutz", "Software", 2013, "O'Reilly"),
                 createLibro("9780201616224", "The Pragmatic Programmer", "Andy Hunt", "Software", 1999, "Addison-Wesley", EstadoLibro.PERDIDO)
-        );
+        ));
+
+        // Libros de prueba generados para cubrir más de una página del catálogo (issue #50).
+        // El padding a 2 dígitos mantiene el orden lexicográfico del sort por título igual al numérico.
+        for (int i = 1; i <= 25; i++) {
+            libros.add(createLibro(
+                    String.format("97830000000%02d", i),
+                    String.format("Libro de Prueba %02d", i),
+                    "Autor de Prueba",
+                    "Prueba",
+                    2000 + i,
+                    "Editorial Prueba"
+            ));
+        }
 
         libroRepository.saveAll(libros);
         log.info("Seed completado: {} libros insertados", libros.size());

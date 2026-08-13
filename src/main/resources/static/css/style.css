@@ -260,6 +260,10 @@ tr:hover { background: var(--bg); }
   border-top: 1px solid var(--border);
 }
 
+.pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; padding: 0.5rem 0; }
+.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+.pagination-info { font-weight: 500; color: var(--text-muted, #6c757d); }
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
