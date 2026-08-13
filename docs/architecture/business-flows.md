@@ -63,7 +63,7 @@ Un usuario autenticado solicita un préstamo; el servicio valida disponibilidad 
 
 ```mermaid
 flowchart TD
-    Start([Lector autenticado]) --> Post[POST /api/prestamos<br/>{libroIsbn} + X-XSRF-TOKEN]
+    Start([Lector autenticado]) --> Post["POST /api/prestamos<br/>{libroIsbn} + X-XSRF-TOKEN"]
     Post --> V1{¿libro existe?}
     V1 -- no --> 404[404 libro no encontrado]
     V1 -- sí --> V2{¿estado DISPONIBLE?}
@@ -96,7 +96,7 @@ Al devolver, el préstamo pasa a `DEVUELTO`, se registra la fecha real, se recup
 
 ```mermaid
 flowchart TD
-    Start([Usuario dueño o bibliotecario]) --> Post[POST /api/prestamos/{id}/devolucion<br/>+ X-XSRF-TOKEN]
+    Start([Usuario dueño o bibliotecario]) --> Post["POST /api/prestamos/{id}/devolucion<br/>+ X-XSRF-TOKEN"]
     Post --> V1{¿préstamo existe y está ACTIVO/ATRASADO?}
     V1 -- no --> 404[404 préstamo no encontrado o ya devuelto]
     V1 -- sí --> Dev[Marcar DEVUELTO<br/>fechaEntregaReal = hoy]
@@ -113,7 +113,7 @@ flowchart TD
     Ok --> Fin([Fin])
     Resp --> Fin
 
-    Owner{Regla: dueño del préstamo (USER)<br/>o LIBRARIAN/ADMIN}
+    Owner{"Regla: dueño del préstamo (USER)<br/>o LIBRARIAN/ADMIN"}
     Post --> Owner
 ```
 
@@ -127,12 +127,12 @@ El scheduler revisa periódicamente los préstamos vencidos y los marca como atr
 
 ```mermaid
 flowchart TD
-    Start([@Scheduled horario]) --> Query[Buscar préstamos ACTIVO<br/>con fechaDevolucion < hoy]
+    Start(["@Scheduled horario"]) --> Query[Buscar préstamos ACTIVO<br/>con fechaDevolucion < hoy]
     Query --> More{¿hay más?}
     More -- sí --> Mark[Estado ACTIVO → ATRASADO<br/>sin multa progresiva]
     Mark --> Query
-    More -- no --> End([Fin: multa solo se genera<br/>al devolver tarde, ver flujo 3])
-    End --> Done([Fin])
+    More -- no --> Finish([Fin: multa solo se genera<br/>al devolver tarde, ver flujo 3])
+    Finish --> Done([Fin])
 ```
 
 ---
@@ -144,11 +144,11 @@ El pago tiene dos vías: el lector dueño de la multa (self-service) y el admini
 ```mermaid
 flowchart TD
     A{¿Quién inicia el pago?}
-    A -- "Lector (USER)" --> B[PUT /api/multas/{id}/pagar<br/>+ X-XSRF-TOKEN]
+    A -- "Lector (USER)" --> B["PUT /api/multas/{id}/pagar<br/>+ X-XSRF-TOKEN"]
     B --> Own{¿es el dueño de la multa?}
     Own -- no --> F[403 no autorizado]
     Own -- sí --> C{¿existe y está PENDIENTE?}
-    A -- "Administrador (ADMIN)" --> D[PUT /api/admin/multas/{id}/pagar<br/>+ X-XSRF-TOKEN]
+    A -- "Administrador (ADMIN)" --> D["PUT /api/admin/multas/{id}/pagar<br/>+ X-XSRF-TOKEN"]
     D --> C
     C -- no --> G[404 o 409 según el caso]
     C -- sí --> P[Multa PENDIENTE → PAGADO]
@@ -209,7 +209,7 @@ Un bibliotecario o administrador marca un libro como perdido: pasa a `PERDIDO`, 
 
 ```mermaid
 flowchart TD
-    Start([Bibliotecario LIBRARIAN o Admin ADMIN]) --> Put[PUT /api/admin/libros/{isbn}/perdido<br/>+ X-XSRF-TOKEN]
+    Start([Bibliotecario LIBRARIAN o Admin ADMIN]) --> Put["PUT /api/admin/libros/{isbn}/perdido<br/>+ X-XSRF-TOKEN"]
     Put --> V1{¿libro existe?}
     V1 -- no --> 404[404 libro no encontrado]
     V1 -- sí --> V2{¿ya está PERDIDO?}
