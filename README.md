@@ -1,5 +1,7 @@
 # LibroMágico
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Sistema de gestión de bibliotecas: catálogo, préstamos, multas y panel de administración.
 
 El backend es una aplicación Spring Boot que sirve la API REST y el frontend (SPA en JavaScript vanilla) desde el mismo contexto web. Con Docker Compose se levanta el stack completo en desarrollo; el perfil `dev` siembra datos de prueba automáticamente para explorar la aplicación sin configuración previa.
@@ -155,6 +157,4 @@ En cada push a `main` y en cada pull request corren 3 jobs:
 
 ## Licencia
 
-<!-- LICENSE -->
-
-La licencia del proyecto todavía no está definida; se decidirá más adelante.
+MIT — ver [LICENSE](LICENSE).
