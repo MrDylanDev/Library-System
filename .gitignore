@@ -13,3 +13,5 @@ __pycache__/
 *.pyc
 .env
 .env.prod
+# Dumps de backup de la base (directorio del host; NO subir al repositorio)
+backups/
