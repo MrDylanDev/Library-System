@@ -153,7 +153,14 @@ En cada push a `main` y en cada pull request corren 3 jobs:
 
 ## Documentación
 
-- `docs/ops/backup-restore.md` — estrategia de backup y restore de la base productiva (RPO 24 h, RTO < 30 min).
+La documentación completa del proyecto vive en `docs/` — [índice general](docs/INDEX.md):
+
+- **Producto**: [charter](docs/product/project-charter.md), [requisitos (SRS)](docs/product/requirements.md), [roadmap](docs/product/roadmap.md).
+- **Arquitectura**: [C4](docs/architecture/c4.md), [ADRs](docs/architecture/adr/README.md), [modelo de datos](docs/architecture/data-model.md), [flujos de negocio](docs/architecture/business-flows.md).
+- **Seguridad**: [RBAC](docs/security/rbac.md) y [dato personal / Habeas Data](docs/security/data-protection.md).
+- **Operativa**: [despliegue](docs/ops/deployment.md), [infraestructura](docs/ops/infrastructure.md), [incidentes](docs/ops/incident-response.md), [backup y restore](docs/ops/backup-restore.md).
+- **Pruebas**: [estrategia](docs/testing/strategy.md) y [casos críticos](docs/testing/critical-cases.md).
+- **Manuales**: [usuario](docs/users/user-guide.md), [bibliotecario](docs/users/librarian-guide.md), [administrador](docs/users/admin-guide.md).
 
 ## Licencia
 
