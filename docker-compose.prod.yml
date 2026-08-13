@@ -62,5 +62,40 @@ services:
       timeout: 5s
       retries: 5
 
+  # Backup diario de la base: cron ejecuta scripts/backup.sh (pg_dump + gzip),
+  # retención por BACKUP_RETENTION_DAYS y los dumps aterrizan en el directorio
+  # del host BACKUP_HOST_DIR (bind mount en /backups). Ver docs/ops/backup-restore.md.
+  backup:
+    image: postgres:16-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-libromagico}-backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Conexión a la base (red interna, sin puerto expuesto)
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${DB_USER:?DB_USER es obligatorio}
+      PGPASSWORD: ${DB_PASS:?DB_PASS es obligatorio}
+      PGDATABASE: libromagico
+      # Disaster recovery
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+    volumes:
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+      - ${BACKUP_HOST_DIR:-./backups}:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'echo "$${BACKUP_SCHEDULE} /usr/local/bin/backup.sh >> /backups/backup.log 2>&1" > /etc/crontabs/root && crond -f -l 2'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h db -U $${PGUSER} -d libromagico"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   postgres-data-prod:

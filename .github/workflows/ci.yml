@@ -112,3 +112,114 @@ jobs:
       - name: Tear down stack
         if: always()
         run: docker compose down -v
+
+  # ---------------------------------------------------------------
+  # 3. Backup/Restore de PostgreSQL: prueba los scripts reales
+  #    (scripts/backup.sh y scripts/restore.sh) contra Postgres con Docker.
+  # ---------------------------------------------------------------
+  backup-restore:
+    name: Backup/Restore (PostgreSQL)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Contenedor fuente con datos de prueba (expone el puerto 5433 en el host).
+      - name: Start source DB with seed data
+        run: |
+          docker run -d --name pg-src \
+            -e POSTGRES_USER=libromagico \
+            -e POSTGRES_PASSWORD=test \
+            -e POSTGRES_DB=libromagico \
+            -p 5433:5432 \
+            postgres:16-alpine
+          for i in $(seq 1 30); do
+            # Sonda con psql: pg_isready responde OK durante el init del server,
+            # antes de que exista la base libromagico (race).
+            if docker exec pg-src psql -U libromagico -d libromagico -tAc "SELECT 1" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec pg-src psql -U libromagico -d libromagico \
+            -c "CREATE TABLE libros(id serial PRIMARY KEY, titulo text NOT NULL); INSERT INTO libros(titulo) VALUES ('El principito');"
+
+      # Genera el dump con el script real. Se ejecuta DENTRO de postgres:16-alpine
+      # (igual que en prod) para que pg_dump y el server coincidan de versión:
+      # un pg_dump del host (más nuevo) emite "SET transaction_timeout" que PG16 no entiende.
+      - name: Run backup script
+        run: |
+          mkdir -p tmp-backups
+          chmod +x scripts/backup.sh
+          docker run --rm --network host \
+            -e PGHOST=localhost -e PGPORT=5433 \
+            -e PGUSER=libromagico -e PGPASSWORD=test -e PGDATABASE=libromagico \
+            -e BACKUP_DIR=/backups \
+            -v "$PWD/scripts/backup.sh:/usr/local/bin/backup.sh:ro" \
+            -v "$PWD/tmp-backups:/backups" \
+            --entrypoint /usr/local/bin/backup.sh \
+            postgres:16-alpine
+          ls -l tmp-backups/
+
+      # Contenedor destino vacío (puerto 5434) y restore del dump generado.
+      - name: Restore dump into target DB
+        run: |
+          docker run -d --name pg-dst \
+            -e POSTGRES_USER=libromagico \
+            -e POSTGRES_PASSWORD=test \
+            -e POSTGRES_DB=libromagico \
+            -p 5434:5432 \
+            postgres:16-alpine
+          for i in $(seq 1 30); do
+            # Sonda con psql (ver nota en "Start source DB with seed data").
+            if docker exec pg-dst psql -U libromagico -d libromagico -tAc "SELECT 1" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          RESTORE_FILE="$(ls "$PWD"/tmp-backups/libromagico_*.sql.gz | head -1)"
+          chmod +x scripts/restore.sh
+          # restore.sh corre dentro de postgres:16-alpine (psql de la misma versión
+          # que el server) y lee el dump desde el bind mount /backups.
+          docker run --rm --network host \
+            -e PGHOST=localhost -e PGPORT=5434 \
+            -e PGUSER=libromagico -e PGPASSWORD=test -e PGDATABASE=libromagico \
+            -e RESTORE_FILE="/backups/$(basename "$RESTORE_FILE")" \
+            -v "$PWD/scripts/restore.sh:/usr/local/bin/restore.sh:ro" \
+            -v "$PWD/tmp-backups:/backups" \
+            --entrypoint /usr/local/bin/restore.sh \
+            postgres:16-alpine
+
+      # Comprueba que los datos sembrados sobrevivieron al ciclo dump -> restore.
+      - name: Verify restored data
+        run: |
+          count=$(docker exec pg-dst psql -U libromagico -d libromagico -tAc "SELECT count(*) FROM libros")
+          echo "Filas restauradas en 'libros': $count"
+          if [ "$count" != "1" ]; then
+            echo "::error::La verificación del restore falló: se esperaba 1 fila, se encontraron '$count'"
+            exit 1
+          fi
+
+      # Crea un dump ficticio de hace 8 días y re-corre el script con retención
+      # de 7 días: comprueba que find -mtime lo elimina.
+      - name: Verify retention
+        run: |
+          touch -d "8 days ago" tmp-backups/libromagico_old.sql.gz
+          docker run --rm --network host \
+            -e PGHOST=localhost -e PGPORT=5433 \
+            -e PGUSER=libromagico -e PGPASSWORD=test -e PGDATABASE=libromagico \
+            -e BACKUP_DIR=/backups -e BACKUP_RETENTION_DAYS=7 \
+            -v "$PWD/scripts/backup.sh:/usr/local/bin/backup.sh:ro" \
+            -v "$PWD/tmp-backups:/backups" \
+            --entrypoint /usr/local/bin/backup.sh \
+            postgres:16-alpine
+          if [ -f tmp-backups/libromagico_old.sql.gz ]; then
+            echo "::error::La retención no eliminó el dump viejo (libromagico_old.sql.gz)"
+            exit 1
+          fi
+
+      # Limpieza idempotente por si el runner quedó con contenedores de un run anterior.
+      - name: Cleanup containers and backup dir
+        if: always()
+        run: |
+          docker rm -f pg-src pg-dst || true
+          rm -rf tmp-backups
