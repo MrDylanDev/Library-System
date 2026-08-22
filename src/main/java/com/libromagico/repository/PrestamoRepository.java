@@ -13,7 +13,9 @@ import java.util.List;
 import com.libromagico.model.EstadoPrestamo;
 
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
-    Page<Prestamo> findByUsuario(Usuario usuario, Pageable pageable);
+    @Query(value = "SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.usuario = :usuario",
+           countQuery = "SELECT COUNT(p) FROM Prestamo p WHERE p.usuario = :usuario")
+    Page<Prestamo> findByUsuarioWithLibro(@Param("usuario") Usuario usuario, Pageable pageable);
 
     boolean existsByUsuarioAndLibroAndEstado(
             @Param("usuario") Usuario usuario,
@@ -30,6 +32,9 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
     @Query(value = "SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro",
            countQuery = "SELECT COUNT(p) FROM Prestamo p")
     Page<Prestamo> findAllWithUsuariosAndLibros(Pageable pageable);
+
+    @Query("SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.id = :id")
+    java.util.Optional<Prestamo> findByIdWithUsuariosAndLibros(@Param("id") Long id);
 
     @Query(value = "SELECT p FROM Prestamo p JOIN FETCH p.usuario JOIN FETCH p.libro WHERE p.estado = :estado",
            countQuery = "SELECT COUNT(p) FROM Prestamo p WHERE p.estado = :estado")

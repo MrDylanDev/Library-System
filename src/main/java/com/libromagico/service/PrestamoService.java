@@ -22,6 +22,7 @@ import java.time.LocalDate;
 public class PrestamoService {
 
     private final PrestamoRepository prestamoRepository;
+    private final LibroRepository libroRepository;
     private final LibroService libroService;
     private final UsuarioRepository usuarioRepository;
     private final MultaService multaService;
@@ -31,7 +32,12 @@ public class PrestamoService {
     public Prestamo prestar(Long usuarioId, String libroIsbn) {
         var usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + usuarioId));
-        var libro = libroService.buscarPorIsbn(libroIsbn);
+
+        // Bloqueo pesimista de escritura sobre la fila del libro: serializa el
+        // decremento de copias dentro de la transacción y evita que dos
+        // peticiones concurrentes presten la última copia (double-booking).
+        var libro = libroRepository.findByIdForUpdate(libroIsbn)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Libro no encontrado: " + libroIsbn));
 
         if (prestamoRepository.existsByUsuarioAndLibroAndEstado(usuario, libro, EstadoPrestamo.ACTIVO)) {
             throw new OperacionInvalidaException("El usuario ya tiene un préstamo activo de este libro");
@@ -94,18 +100,18 @@ public class PrestamoService {
     }
 
     public Prestamo buscarPorId(Long prestamoId) {
-        return prestamoRepository.findById(prestamoId)
+        return prestamoRepository.findByIdWithUsuariosAndLibros(prestamoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Préstamo no encontrado: " + prestamoId));
     }
 
     public Page<Prestamo> historialPorUsuario(Long usuarioId, Pageable pageable) {
         var usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + usuarioId));
-        return prestamoRepository.findByUsuario(usuario, pageable);
+        return prestamoRepository.findByUsuarioWithLibro(usuario, pageable);
     }
 
     public Page<Prestamo> listarTodos(Pageable pageable) {
-        return prestamoRepository.findAll(pageable);
+        return prestamoRepository.findAllWithUsuariosAndLibros(pageable);
     }
 
     public Page<Prestamo> listarAdmin(EstadoPrestamo estado, Pageable pageable) {
