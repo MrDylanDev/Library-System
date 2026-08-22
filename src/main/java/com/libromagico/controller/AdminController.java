@@ -2,15 +2,16 @@ package com.libromagico.controller;
 
 import com.libromagico.dto.UpdateEstadoRequest;
 import com.libromagico.dto.UpdateRolRequest;
+import com.libromagico.dto.MultaAdminResponse;
+import com.libromagico.dto.PrestamoResponse;
 import com.libromagico.dto.UsuarioResponse;
 import com.libromagico.model.EstadoPrestamo;
 import com.libromagico.model.Libro;
-import com.libromagico.model.Multa;
-import com.libromagico.model.Prestamo;
 import com.libromagico.model.Usuario;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
+import com.libromagico.service.DtoMapper;
 import com.libromagico.service.LibroService;
 import com.libromagico.service.MultaService;
 import com.libromagico.service.PrestamoService;
@@ -61,14 +62,14 @@ public class AdminController {
     }
 
     @GetMapping("/multas")
-    public ResponseEntity<Page<Multa>> listarMultas(@PageableDefault(sort = "id", size = 20) Pageable pageable) {
-        return ResponseEntity.ok(multaService.listarMultas(pageable));
+    public ResponseEntity<Page<MultaAdminResponse>> listarMultas(@PageableDefault(sort = "id", size = 20) Pageable pageable) {
+        var page = multaService.listarMultas(pageable);
+        return ResponseEntity.ok(page.map(DtoMapper::from));
     }
 
     @PutMapping("/multas/{id}/pagar")
-    public ResponseEntity<?> pagarMulta(@PathVariable Long id) {
-        var multa = multaService.pagarMulta(id);
-        return ResponseEntity.ok(multa);
+    public ResponseEntity<MultaAdminResponse> pagarMulta(@PathVariable Long id) {
+        return ResponseEntity.ok(DtoMapper.from(multaService.pagarMulta(id)));
     }
 
     @PutMapping("/libros/{isbn}/perdido")
@@ -77,10 +78,11 @@ public class AdminController {
     }
 
     @GetMapping("/prestamos")
-    public ResponseEntity<Page<Prestamo>> listarPrestamosAdmin(
+    public ResponseEntity<Page<PrestamoResponse>> listarPrestamosAdmin(
             @RequestParam(required = false) EstadoPrestamo estado,
             @PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
-        return ResponseEntity.ok(prestamoService.listarAdmin(estado, pageable));
+        var page = prestamoService.listarAdmin(estado, pageable);
+        return ResponseEntity.ok(page.map(DtoMapper::from));
     }
 
     private static UsuarioResponse toResponse(Usuario u) {

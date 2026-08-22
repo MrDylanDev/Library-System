@@ -25,7 +25,7 @@ import java.util.List;
 @Component
 @Order(2)
 @RequiredArgsConstructor
-@Profile("!test")
+@Profile("dev")
 public class DeudaSeedInitializer implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;

@@ -417,10 +417,29 @@ class AuthorizationIntegrationTest {
     }
 
     @Test
-    @DisplayName("ADMIN: GET /api/libros -> 200")
+    @DisplayName("GET /api/libros -> 200")
     void adminGetLibros() throws Exception {
         mockMvc.perform(get("/api/libros")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Un usuario bloqueado con token vigente pierde el acceso de inmediato")
+    void userBloqueado_pierdeAccesoConTokenVigente() throws Exception {
+        mockMvc.perform(get("/api/prestamos/usuarios/" + userId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/admin/usuarios/" + userId + "/estado").with(csrf())
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"estado":"BLOQUEADO"}"""))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/prestamos/usuarios/" + userId)
+                        .header("Authorization", "Bearer " + userToken))
+                .andExpect(status().isUnauthorized());
     }
 }

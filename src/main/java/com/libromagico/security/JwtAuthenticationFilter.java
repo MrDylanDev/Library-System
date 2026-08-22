@@ -45,6 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     && !tokenRevocationService.estaTokenDeSesionPrevia(token, email)) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
+                // Un usuario deshabilitado (BLOQUEADO) no debe autenticarse ni
+                // con un token vigente: la revocación al bloquear es la primera
+                // barrera, pero esto cubre el caso de que un token ya emitido
+                // sobreviva a la revocación (por ejemplo datos preexistentes).
+                if (!userDetails.isEnabled()) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());

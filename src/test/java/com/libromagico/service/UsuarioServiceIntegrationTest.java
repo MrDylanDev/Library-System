@@ -7,6 +7,7 @@ import com.libromagico.model.EstadoUsuario;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
 import com.libromagico.repository.UsuarioRepository;
+import com.libromagico.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -154,10 +155,14 @@ class UsuarioServiceIntegrationTest {
         var result = usuarioService.forgotPassword("forgot@test.com");
 
         assertTrue(result.isPresent());
-        assertEquals(user.getId(), result.get().getId());
-        assertNotNull(result.get().getResetToken());
-        assertNotNull(result.get().getResetTokenExpiry());
-        assertTrue(result.get().getResetTokenExpiry().isAfter(LocalDateTime.now()));
+        assertNotNull(result.get().token());
+        assertNotNull(result.get().email());
+        assertEquals("forgot@test.com", result.get().email());
+
+        var updated = usuarioRepository.findByEmail("forgot@test.com").orElseThrow();
+        assertNotNull(updated.getResetTokenHash());
+        assertNotNull(updated.getResetTokenExpiry());
+        assertTrue(updated.getResetTokenExpiry().isAfter(LocalDateTime.now()));
     }
 
     @Test
@@ -172,7 +177,7 @@ class UsuarioServiceIntegrationTest {
     @DisplayName("resetPassword updates password and clears token for valid token")
     void resetPassword_success() {
         var user = createUser("reset@test.com", "44444444");
-        user.setResetToken("valid-token-123");
+        user.setResetTokenHash(UsuarioService.hashToken("valid-token-123"));
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(user);
 
@@ -181,7 +186,7 @@ class UsuarioServiceIntegrationTest {
         var updated = usuarioRepository.findByEmail("reset@test.com").orElseThrow();
         assertTrue(passwordEncoder.matches("NewPass123!", updated.getContrasena()),
                 "Password should be updated and encoded");
-        assertNull(updated.getResetToken());
+        assertNull(updated.getResetTokenHash());
         assertNull(updated.getResetTokenExpiry());
     }
 
@@ -196,7 +201,7 @@ class UsuarioServiceIntegrationTest {
     @DisplayName("resetPassword throws OperacionInvalidaException for expired token")
     void resetPassword_expiredToken() {
         var user = createUser("expired@test.com", "55555555");
-        user.setResetToken("expired-token");
+        user.setResetTokenHash(UsuarioService.hashToken("expired-token"));
         user.setResetTokenExpiry(LocalDateTime.now().minusHours(1));
         usuarioRepository.save(user);
 

@@ -3,6 +3,7 @@ package com.libromagico.service;
 import com.libromagico.config.PrestamoConfig;
 import com.libromagico.exception.OperacionInvalidaException;
 import com.libromagico.model.*;
+import com.libromagico.repository.LibroRepository;
 import com.libromagico.repository.PrestamoRepository;
 import com.libromagico.repository.UsuarioRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +26,9 @@ class PrestamoServiceUnitTest {
 
     @Mock
     private PrestamoRepository prestamoRepository;
+
+    @Mock
+    private LibroRepository libroRepository;
 
     @Mock
     private LibroService libroService;
@@ -55,7 +59,7 @@ class PrestamoServiceUnitTest {
         libro.setCopiasDisponibles(0);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(libroService.buscarPorIsbn("9780201633610")).thenReturn(libro);
+        when(libroRepository.findByIdForUpdate("9780201633610")).thenReturn(Optional.of(libro));
 
         assertThrows(OperacionInvalidaException.class,
                 () -> prestamoService.prestar(1L, "9780201633610"));
@@ -72,7 +76,7 @@ class PrestamoServiceUnitTest {
         libro.setCopiasDisponibles(2);
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(libroService.buscarPorIsbn("9780201633610")).thenReturn(libro);
+        when(libroRepository.findByIdForUpdate("9780201633610")).thenReturn(Optional.of(libro));
         when(prestamoRepository.existsByUsuarioAndLibroAndEstado(any(), any(), eq(EstadoPrestamo.ACTIVO)))
                 .thenReturn(true);
 

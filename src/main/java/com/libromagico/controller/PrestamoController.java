@@ -1,12 +1,13 @@
 package com.libromagico.controller;
 
 import com.libromagico.dto.PrestamoRequest;
+import com.libromagico.dto.PrestamoResponse;
 import com.libromagico.exception.AccesoDenegadoException;
 import com.libromagico.exception.RecursoNoEncontradoException;
-import com.libromagico.model.Prestamo;
 import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
 import com.libromagico.repository.UsuarioRepository;
+import com.libromagico.service.DtoMapper;
 import com.libromagico.service.PrestamoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,24 +30,25 @@ public class PrestamoController {
     private final UsuarioRepository usuarioRepository;
 
     @GetMapping
-    public ResponseEntity<Page<Prestamo>> listarTodos(@PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
-        return ResponseEntity.ok(prestamoService.listarTodos(pageable));
+    public ResponseEntity<Page<PrestamoResponse>> listarTodos(@PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
+        var page = prestamoService.listarTodos(pageable);
+        return ResponseEntity.ok(page.map(DtoMapper::from));
     }
 
     @PostMapping
-    public ResponseEntity<Prestamo> prestar(@AuthenticationPrincipal UserDetails userDetails,
-                                            @Valid @RequestBody PrestamoRequest request) {
+    public ResponseEntity<PrestamoResponse> prestar(@AuthenticationPrincipal UserDetails userDetails,
+                                                    @Valid @RequestBody PrestamoRequest request) {
         var usuario = usuarioAutenticado(userDetails);
         if (usuario.getRol() == RolUsuario.USER && !request.usuarioId().equals(usuario.getId())) {
             throw new AccesoDenegadoException("Solo puedes solicitar préstamos para tu propia cuenta");
         }
 
         var prestamo = prestamoService.prestar(request.usuarioId(), request.libroIsbn());
-        return ResponseEntity.status(HttpStatus.CREATED).body(prestamo);
+        return ResponseEntity.status(HttpStatus.CREATED).body(DtoMapper.from(prestamo));
     }
 
     @PutMapping("/{id}/devolucion")
-    public ResponseEntity<Prestamo> devolver(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long id) {
+    public ResponseEntity<PrestamoResponse> devolver(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long id) {
         var usuario = usuarioAutenticado(userDetails);
         if (usuario.getRol() == RolUsuario.USER) {
             var prestamo = prestamoService.buscarPorId(id);
@@ -55,19 +57,20 @@ public class PrestamoController {
             }
         }
 
-        return ResponseEntity.ok(prestamoService.devolver(id));
+        return ResponseEntity.ok(DtoMapper.from(prestamoService.devolver(id)));
     }
 
     @GetMapping("/usuarios/{usuarioId}")
-    public ResponseEntity<Page<Prestamo>> historial(@AuthenticationPrincipal UserDetails userDetails,
-                                                    @PathVariable Long usuarioId,
-                                                    @PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
+    public ResponseEntity<Page<PrestamoResponse>> historial(@AuthenticationPrincipal UserDetails userDetails,
+                                                            @PathVariable Long usuarioId,
+                                                            @PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
         var usuario = usuarioAutenticado(userDetails);
         if (usuario.getRol() == RolUsuario.USER && !usuarioId.equals(usuario.getId())) {
             throw new AccesoDenegadoException("Solo puedes ver tu propio historial de préstamos");
         }
 
-        return ResponseEntity.ok(prestamoService.historialPorUsuario(usuarioId, pageable));
+        var page = prestamoService.historialPorUsuario(usuarioId, pageable);
+        return ResponseEntity.ok(page.map(DtoMapper::from));
     }
 
     private Usuario usuarioAutenticado(UserDetails userDetails) {

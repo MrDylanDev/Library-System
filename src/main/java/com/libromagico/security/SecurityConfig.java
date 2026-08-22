@@ -1,6 +1,7 @@
 package com.libromagico.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.libromagico.controller.ApiError;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -28,9 +30,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -39,6 +39,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
     private final AuthRateLimitFilter authRateLimitFilter;
+    private final ObjectMapper objectMapper;
 
     @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private List<String> allowedOrigins;
@@ -171,34 +172,24 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
-        return (request, response, authException) -> {
-            response.setContentType("application/json");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write(new ObjectMapper().writeValueAsString(
-                Map.of(
-                    "timestamp", LocalDateTime.now().toString(),
-                    "status", 401,
-                    "error", "Unauthorized",
-                    "message", authException.getMessage()
-                )
-            ));
-        };
+        return (request, response, authException) ->
+                writeError(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        authException.getMessage());
     }
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, accessDeniedException) -> {
-            response.setContentType("application/json");
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write(new ObjectMapper().writeValueAsString(
-                Map.of(
-                    "timestamp", LocalDateTime.now().toString(),
-                    "status", 403,
-                    "error", "Forbidden",
-                    "message", accessDeniedException.getMessage()
-                )
-            ));
-        };
+        return (request, response, accessDeniedException) ->
+                writeError(response, HttpServletResponse.SC_FORBIDDEN,
+                        accessDeniedException.getMessage());
+    }
+
+    private void writeError(HttpServletResponse response, int status, String message)
+            throws IOException {
+        response.setContentType("application/json");
+        response.setStatus(status);
+        response.getWriter().write(objectMapper.writeValueAsString(
+                ApiError.of(HttpStatus.resolve(status), message)));
     }
 
     @Bean

@@ -124,7 +124,7 @@ class TokenRevocationIntegrationTest {
 
         var token = login(USER_EMAIL, USER_PASS);
 
-        usuario.setResetToken("reset-token-revocacion");
+        usuario.setResetTokenHash(UsuarioService.hashToken("reset-token-revocacion"));
         usuario.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(usuario);
 
@@ -135,7 +135,7 @@ class TokenRevocationIntegrationTest {
 
         var restaurado = usuarioRepository.findByEmail(USER_EMAIL).orElseThrow();
         restaurado.setContrasena(hashOriginal);
-        restaurado.setResetToken(null);
+        restaurado.setResetTokenHash(null);
         restaurado.setResetTokenExpiry(null);
         usuarioRepository.save(restaurado);
     }
@@ -145,14 +145,14 @@ class TokenRevocationIntegrationTest {
     void segundoResetConsecutivoNoFalla() throws Exception {
         // Primera restauración: crea el marcador por email
         var u1 = usuarioRepository.findByEmail(USER_EMAIL).orElseThrow();
-        u1.setResetToken("reset-1");
+        u1.setResetTokenHash(UsuarioService.hashToken("reset-1"));
         u1.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(u1);
         usuarioService.resetPassword("reset-1", "NuevaPass1!");
 
         // Segunda restauración del mismo email: debe funcionar sin DataIntegrityViolation
         var u2 = usuarioRepository.findByEmail(USER_EMAIL).orElseThrow();
-        u2.setResetToken("reset-2");
+        u2.setResetTokenHash(UsuarioService.hashToken("reset-2"));
         u2.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(u2);
         usuarioService.resetPassword("reset-2", "OtraPass2!");
@@ -160,7 +160,7 @@ class TokenRevocationIntegrationTest {
         // Restaurar el password original para no contaminar otros tests
         var restaurado = usuarioRepository.findByEmail(USER_EMAIL).orElseThrow();
         restaurado.setContrasena(passwordEncoder.encode(USER_PASS));
-        restaurado.setResetToken(null);
+        restaurado.setResetTokenHash(null);
         restaurado.setResetTokenExpiry(null);
         usuarioRepository.save(restaurado);
     }

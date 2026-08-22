@@ -149,8 +149,8 @@ public class AuthController {
         var usuario = usuarioService.forgotPassword(request.email());
 
         usuario.ifPresent(u -> {
-            String resetLink = baseUrl + "/#/reset-password/" + u.getResetToken();
-            emailService.enviarResetPassword(u.getEmail(), u.getNombre(), resetLink);
+            String resetLink = baseUrl + "/#/reset-password/" + u.token();
+            emailService.enviarResetPassword(u.email(), u.nombre(), resetLink);
         });
 
         return ResponseEntity.ok(Map.of("message", "Si el email existe, recibirás un enlace de recuperación"));

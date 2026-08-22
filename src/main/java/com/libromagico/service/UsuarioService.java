@@ -15,7 +15,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,31 +56,38 @@ public class UsuarioService {
     }
 
     @Transactional
-    public Optional<Usuario> forgotPassword(String email) {
+    public Optional<ResetPasswordInvitation> forgotPassword(String email) {
         var usuario = usuarioRepository.findByEmail(email);
         if (usuario.isEmpty()) {
             return Optional.empty();
         }
 
         var u = usuario.get();
-        u.setResetToken(UUID.randomUUID().toString());
+        String tokenCrudo = UUID.randomUUID().toString();
+        u.setResetTokenHash(hash(tokenCrudo));
         u.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(u);
 
-        return Optional.of(u);
+        // Solo el hash se persiste; el token crudo viaja en el email. Si la base
+        // se ve comprometida, el hash no permite restablecer la contraseña.
+        return Optional.of(new ResetPasswordInvitation(u.getEmail(), u.getNombre(), tokenCrudo));
     }
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        var usuario = usuarioRepository.findByResetToken(token)
+        var usuario = usuarioRepository.findByResetTokenHash(hash(token))
                 .orElseThrow(() -> new OperacionInvalidaException("Token inválido o expirado"));
 
         if (usuario.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new OperacionInvalidaException("Token inválido o expirado");
         }
+        if (usuario.getResetTokenHash() == null
+                || !usuario.getResetTokenHash().equals(hash(token))) {
+            throw new OperacionInvalidaException("Token inválido o expirado");
+        }
 
         usuario.setContrasena(passwordEncoder.encode(newPassword));
-        usuario.setResetToken(null);
+        usuario.setResetTokenHash(null);
         usuario.setResetTokenExpiry(null);
         usuarioRepository.save(usuario);
 
@@ -86,14 +97,43 @@ public class UsuarioService {
         log.info("Contraseña restablecida: usuario={}", usuario.getId());
     }
 
+    public static String hashToken(String token) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 no disponible", e);
+        }
+    }
+
+    private String hash(String token) {
+        return hashToken(token);
+    }
+
+    /**
+     * Datos para enviar la invitación de restablecimiento de contraseña.
+     * El token es el valor crudo (solo viaja en el email); en la base se
+     * persiste únicamente su hash.
+     */
+    public record ResetPasswordInvitation(String email, String nombre, String token) {
+    }
+
     @Transactional
     public Usuario actualizarRol(Long id, RolUsuario nuevoRol) {
         var usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + id));
 
+        boolean cambiaPrivilegios = usuario.getRol() != nuevoRol;
         usuario.setRol(nuevoRol);
         var saved = usuarioRepository.save(usuario);
         log.info("Rol actualizado: usuario={}, rol={}", id, nuevoRol);
+
+        // Si cambian los privilegios, los tokens ya emitidos siguen llevando el
+        // rol viejo en el claim. Se revocan para que el usuario deba re-autenticarse
+        // y obtener tokens con el rol nuevo.
+        if (cambiaPrivilegios) {
+            tokenRevocationService.revocarTokensDeUsuario(usuario.getEmail());
+        }
         return saved;
     }
 
@@ -102,9 +142,18 @@ public class UsuarioService {
         var usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado: " + id));
 
+        boolean seBloquea = usuario.getEstado() != EstadoUsuario.BLOQUEADO
+                && nuevoEstado == EstadoUsuario.BLOQUEADO;
         usuario.setEstado(nuevoEstado);
         var saved = usuarioRepository.save(usuario);
         log.info("Estado actualizado: usuario={}, estado={}", id, nuevoEstado);
+
+        // Al bloquear, se revocan todos los tokens vigentes: un usuario con una
+        // sesión activa (token emitido antes del bloqueo) no debe seguir operando
+        // hasta que el token expire o se cierre sesión.
+        if (seBloquea) {
+            tokenRevocationService.revocarTokensDeUsuario(usuario.getEmail());
+        }
         return saved;
     }
 

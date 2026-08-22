@@ -1,5 +1,6 @@
 package com.libromagico.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -26,6 +27,7 @@ public class Usuario {
     private String email;
 
     @NotBlank(message = "La contraseña es obligatoria")
+    @JsonIgnore
     private String contrasena;
 
     @Pattern(regexp = "^[0-9]{8}$", message = "DNI debe tener 8 dígitos")
@@ -41,7 +43,9 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     private EstadoUsuario estado = EstadoUsuario.ACTIVO;
 
-    private String resetToken;
+    @JsonIgnore
+    private String resetTokenHash;
 
+    @JsonIgnore
     private LocalDateTime resetTokenExpiry;
 }

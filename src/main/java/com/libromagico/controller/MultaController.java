@@ -22,8 +22,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/multas")
 @RequiredArgsConstructor
@@ -57,13 +55,15 @@ public class MultaController {
 
         if (!multa.getPrestamo().getUsuario().getId().equals(usuario.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "No tenés permiso para pagar esta multa"));
+                    .body(ApiError.of(HttpStatus.FORBIDDEN,
+                            "No tenés permiso para pagar esta multa"));
         }
 
         try {
             multaService.pagarMulta(id);
         } catch (OperacionInvalidaException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest()
+                    .body(ApiError.of(HttpStatus.BAD_REQUEST, e.getMessage()));
         }
 
         var response = new MultaResponse(
