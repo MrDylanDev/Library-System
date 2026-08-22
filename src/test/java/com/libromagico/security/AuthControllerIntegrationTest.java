@@ -6,6 +6,7 @@ import com.libromagico.model.RolUsuario;
 import com.libromagico.model.Usuario;
 import com.libromagico.repository.PrestamoRepository;
 import com.libromagico.repository.UsuarioRepository;
+import com.libromagico.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,7 +126,7 @@ class AuthControllerIntegrationTest {
     void resetPasswordTokenValido() throws Exception {
         var email = uniqueEmail("resetok");
         var user = createUser(email, "34567890");
-        user.setResetToken("token-valido-123");
+        user.setResetTokenHash(UsuarioService.hashToken("token-valido-123"));
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         usuarioRepository.save(user);
 
@@ -155,7 +156,7 @@ class AuthControllerIntegrationTest {
     void resetPasswordTokenExpirado() throws Exception {
         var email = uniqueEmail("resetexp");
         var user = createUser(email, "45678901");
-        user.setResetToken("token-expirado");
+        user.setResetTokenHash(UsuarioService.hashToken("token-expirado"));
         user.setResetTokenExpiry(LocalDateTime.now().minusHours(1));
         usuarioRepository.save(user);
 
