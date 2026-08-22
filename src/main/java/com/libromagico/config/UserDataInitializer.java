@@ -18,7 +18,7 @@ import java.util.List;
 @Component
 @Order(1)
 @RequiredArgsConstructor
-@Profile("!test")
+@Profile("dev")
 public class UserDataInitializer implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
