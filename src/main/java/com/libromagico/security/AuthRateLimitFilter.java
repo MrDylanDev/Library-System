@@ -2,6 +2,7 @@ package com.libromagico.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.libromagico.controller.ApiError;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,9 +24,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -164,13 +164,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setStatus(429);
         response.getWriter().write(objectMapper.writeValueAsString(
-            Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 429,
-                "error", "Too Many Requests",
-                "message", MESSAGE_TOO_MANY_REQUESTS
-            )
-        ));
+            ApiError.of(HttpStatus.TOO_MANY_REQUESTS, MESSAGE_TOO_MANY_REQUESTS)));
     }
 
     /**
