@@ -18,9 +18,17 @@ import java.util.UUID;
 public class JwtTokenProvider {
 
     /**
-     * Secret de desarrollo conocida, publicada en el historial del repositorio.
-     * Solo se tolera fuera del perfil {@code prod}: en producción su uso permite
-     * forjar tokens y es un fallo de arranque.
+     * Secret de desarrollo conocida, publicada en el historial del repositorio
+     * (commit {@code 8cf9df2}). Concesión dev-only: solo se tolera fuera del
+     * perfil {@code prod}. En producción su uso permite forjar tokens y es un
+     * fallo de arranque.
+     *
+     * <p>Guardia de tres capas en producción (defensa en profundidad):
+     * {@code docker-compose.prod.yml} ({@code JWT_SECRET:?} fail-fast) →
+     * {@code application-prod.properties}
+     * ({@code jwt.secret=${JWT_SECRET:?...}}) →
+     * {@code requireProductionSecret} (rechaza secreto en blanco, valor de
+     * desarrollo y secretos de menos de 32 bytes).
      */
     private static final String DEV_FALLBACK_SECRET =
             "LibroMagico2024SecretKeyParaFirmarJWTMinimo256Bits!!";
