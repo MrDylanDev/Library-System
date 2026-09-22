@@ -84,13 +84,16 @@ de la más temprana a la más tardía:
 Verificación de la guardia (el arranque debe fallar sin secreto):
 
 ```bash
-# 1) Guardas estáticas + guardia Java (sin levantar Spring prod)
+# 1) Guardas estáticas + guardia Java (no levantan Spring prod ni resuelven
+# el placeholder; JwtTokenProviderSecretValidationTest mockea Environment)
 ./mvnw test -Dtest=JwtSecretHygieneFileContentTest,JwtTokenProviderSecretValidationTest
 
-# 2) Sin JWT_SECRET y con perfil prod, el contexto no arranca
-unset JWT_SECRET; SPRING_PROFILES_ACTIVE=prod ./mvnw test -Dtest=JwtTokenProviderSecretValidationTest
-# esperado: Could not resolve placeholder 'JWT_SECRET'
-# o IllegalStateException de requireProductionSecret según la capa alcanzada
+# 2) Fail-fast real de Spring/Compose (requiere Docker; sin arrancar prod)
+docker compose --env-file /dev/null -f docker-compose.prod.yml -p libromagico config > /dev/null
+# sin JWT_SECRET en el entorno: ERROR por variable requerida (${JWT_SECRET:?} capa 1)
+# con JWT_SECRET exportado: config resuelve sin error; el placeholder
+# requerido jwt.secret=${JWT_SECRET} (capa 2) y requireProductionSecret (capa 3)
+# actúan al arrancar el app con perfil prod
 ```
 
 ## 5. Rollback
@@ -115,12 +118,15 @@ DROP INDEX IF EXISTS idx_tokens_revocados_expira;
 ```
 
 Rollback completo del cambio `jwt-secret-hygiene`: `git revert` de los
-commits del cambio revierte el código, pero conserva el archivo
-`V6__tokens_revocados_indexes.sql` en las releases revertidas (Flyway es
-forward-only: borrar una migración ya aplicada rompe la validación).
+commits del cambio BORRA `V6__tokens_revocados_indexes.sql` del árbol
+(revert no preserva archivos agregados). Si la BD ya aplicó V6, desplegar
+ese árbol rompe la validación de Flyway (migración aplicada sin archivo
+resuelto). Por eso, tras el revert hay que retener/re-agregar el archivo —
+p. ej. `git checkout <sha-previo-al-revert> -- src/main/resources/db/migration/V6__tokens_revocados_indexes.sql` —
+o restaurar un backup de la BD previo a V6 (ver `docs/ops/deployment.md`).
 El rollback de esquema solo es posible restaurando un backup de la BD
-previo a V6 (ver `docs/ops/deployment.md`); un revert solo de código sin
-el `DROP INDEX` deja índices extra inofensivos.
+previo a V6; un revert solo de código sin el `DROP INDEX` deja índices
+extra inofensivos.
 
 ## 6. Problemas comunes y fixes
 

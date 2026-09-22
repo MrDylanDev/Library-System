@@ -41,6 +41,7 @@ Punto de entrada a toda la documentación del proyecto. La fuente de verdad es e
 |---|---|
 | [Backup y restore](ops/backup-restore.md) | Estrategia RPO 24 h / RTO < 30 min, scripts y guía de restore |
 | [Despliegue](ops/deployment.md) | Runbook de despliegue productivo, verificación y rollback |
+| [Rotación de JWT_SECRET](ops/jwt-secret-rotation.md) | Rotación hard-cutover, triple guardia y rollback |
 | [Infraestructura](ops/infrastructure.md) | Docker, CI/CD, volúmenes, observabilidad |
 | [Incidentes](ops/incident-response.md) | Niveles de severidad, runbooks por incidente y plantilla de postmortem |
 

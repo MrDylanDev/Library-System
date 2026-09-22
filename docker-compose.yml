@@ -14,7 +14,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-libromagico}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # JWT intentionally unset: dev uses the application.properties fallback.
-      # To override, re-add a JWT_SECRET mapping or export JWT_SECRET in the environment.
+      # To override, re-add an explicit service mapping (e.g. `JWT_SECRET: ${JWT_SECRET:?}`)
+      # or a passthrough entry (`- JWT_SECRET`); exporting the var alone is not enough.
       APP_MAIL_ENABLED: "true"
       SPRING_MAIL_HOST: mailhog
       SPRING_MAIL_PORT: 1025
