@@ -37,9 +37,17 @@ class JwtSecretHygieneFileContentTest {
     @DisplayName("prod properties fails fast without JWT_SECRET")
     void prodProperties_failsFastWithoutJwtSecret() throws IOException {
         String content = read("src/main/resources/application-prod.properties");
-        assertTrue(content.contains(
-                "jwt.secret=${JWT_SECRET:?JWT_SECRET es obligatorio en producción}"),
-                "application-prod.properties must define jwt.secret with :? fail-fast placeholder");
+        String jwtLine = content.lines()
+                .filter(line -> line.stripLeading().startsWith("jwt.secret="))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "application-prod.properties must define a jwt.secret line"));
+        assertTrue(jwtLine.contains("jwt.secret=${JWT_SECRET}"),
+                "application-prod.properties must define jwt.secret with required ${JWT_SECRET} placeholder");
+        assertFalse(jwtLine.contains(":"),
+                "jwt.secret line must carry no default; unset JWT_SECRET fails startup with CouldNotResolvePlaceholder");
+        assertTrue(content.contains("${SMTP_PORT:587}"),
+                "other placeholders with defaults (e.g. SMTP_PORT:587) must remain untouched");
     }
 
     @Test
@@ -48,8 +56,8 @@ class JwtSecretHygieneFileContentTest {
         String content = read("docker-compose.yml");
         assertFalse(content.contains(DEV_FALLBACK),
                 "docker-compose.yml must not hardcode the dev fallback secret");
-        assertTrue(content.contains("JWT_SECRET: ${JWT_SECRET:-}"),
-                "docker-compose.yml must keep an empty JWT_SECRET default");
+        assertFalse(content.matches("(?m)^\\s*JWT_SECRET\\s*:.*"),
+                "docker-compose.yml must not define a JWT_SECRET mapping line (a comment mentioning JWT_SECRET is fine)");
     }
 
     @Test

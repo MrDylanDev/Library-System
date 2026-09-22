@@ -26,7 +26,7 @@ public class JwtTokenProvider {
      * <p>Guardia de tres capas en producción (defensa en profundidad):
      * {@code docker-compose.prod.yml} ({@code JWT_SECRET:?} fail-fast) →
      * {@code application-prod.properties}
-     * ({@code jwt.secret=${JWT_SECRET:?...}}) →
+     * ({@code jwt.secret=${JWT_SECRET}}) →
      * {@code requireProductionSecret} (rechaza secreto en blanco, valor de
      * desarrollo y secretos de menos de 32 bytes).
      */

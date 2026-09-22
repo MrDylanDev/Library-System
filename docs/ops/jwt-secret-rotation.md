@@ -112,11 +112,12 @@ DROP INDEX IF EXISTS idx_tokens_revocados_expira;
 ```
 
 Rollback completo del cambio `jwt-secret-hygiene`: `git revert` de los
-commits del cambio revierte las 4 modificaciones y permite borrar los 2
-archivos nuevos (`V6__tokens_revocados_indexes.sql`,
-`docs/ops/jwt-secret-rotation.md`). Ojo con la salvedad estándar de Flyway
-(ver `docs/ops/deployment.md`): el esquema solo avanza, así que un revert
-solo de código sin el `DROP INDEX` deja índices extra inofensivos.
+commits del cambio revierte el código, pero conserva el archivo
+`V6__tokens_revocados_indexes.sql` en las releases revertidas (Flyway es
+forward-only: borrar una migración ya aplicada rompe la validación).
+El rollback de esquema solo es posible restaurando un backup de la BD
+previo a V6 (ver `docs/ops/deployment.md`); un revert solo de código sin
+el `DROP INDEX` deja índices extra inofensivos.
 
 ## 6. Problemas comunes y fixes
 
