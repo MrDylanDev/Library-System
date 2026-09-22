@@ -46,7 +46,7 @@ cp .env.prod .env.prod.bak-$(date +%F)
 
 ```bash
 # 4) Redeployar el stack productivo con el nuevo secreto
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml -p libromagico up -d --build
 
 # 5) Verificar el arranque
 docker compose --env-file .env.prod -f docker-compose.prod.yml -p libromagico logs app
@@ -77,16 +77,19 @@ de la más temprana a la más tardía:
 
 | Capa | Dónde | Qué hace |
 |------|-------|----------|
-| 1. Compose | `docker-compose.prod.yml` (`JWT_SECRET: ${JWT_SECRET:?...}`) | Falla rápido si la variable falta en `.env.prod`. |
-| 2. Properties | `application-prod.properties` (`jwt.secret=${JWT_SECRET:?...}`) | Spring no resuelve el placeholder y el contexto no arranca (`Could not resolve placeholder 'JWT_SECRET'`). |
+| 1. Compose | `docker-compose.prod.yml` (`JWT_SECRET: ${JWT_SECRET:?}` — sintaxis Compose que exige la variable) | Falla rápido si la variable falta en `.env.prod`. |
+| 2. Properties | `application-prod.properties` (`jwt.secret=${JWT_SECRET}` — placeholder Spring requerido, sin default) | Spring no resuelve el placeholder y el contexto no arranca (`Could not resolve placeholder 'JWT_SECRET'`). |
 | 3. Java | `JwtTokenProvider.requireProductionSecret` | Rechaza secreto en blanco, el valor dev por defecto y secretos de menos de 32 bytes con `IllegalStateException`. |
 
 Verificación de la guardia (el arranque debe fallar sin secreto):
 
 ```bash
-# Sin JWT_SECRET y con perfil prod, el arranque falla rápido
-SPRING_PROFILES_ACTIVE=prod ./mvnw test -Dspring.profiles.active=prod
-# esperado: Could not resolve placeholder 'JWT_SECRET' (... es obligatorio en producción)
+# 1) Guardas estáticas + guardia Java (sin levantar Spring prod)
+./mvnw test -Dtest=JwtSecretHygieneFileContentTest,JwtTokenProviderSecretValidationTest
+
+# 2) Sin JWT_SECRET y con perfil prod, el contexto no arranca
+unset JWT_SECRET; SPRING_PROFILES_ACTIVE=prod ./mvnw test -Dtest=JwtTokenProviderSecretValidationTest
+# esperado: Could not resolve placeholder 'JWT_SECRET'
 # o IllegalStateException de requireProductionSecret según la capa alcanzada
 ```
 
@@ -99,7 +102,7 @@ Si la rotación falla (secreto nuevo demasiado corto, error de deploy):
 cp .env.prod.bak-<fecha> .env.prod
 
 # 2) Redeployar con el secreto restaurado
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml -p libromagico up -d --build
 ```
 
 Rollback de los índices V6 (solo si hay que revertir el cambio de esquema;
@@ -131,7 +134,7 @@ el `DROP INDEX` deja índices extra inofensivos.
 
 ## 7. Checklist post-rotación
 
-- [ ] `docker compose ps` muestra `app`, `db` y `backup` en `Up`/`running`.
+- [ ] `docker compose --env-file .env.prod -f docker-compose.prod.yml -p libromagico ps` muestra `app`, `db` y `backup` en `Up`/`running`.
 - [ ] `curl /api/health` responde `{"status":"UP","db":"UP"}`.
 - [ ] Login manual desde el navegador funciona y emite una cookie nueva.
 - [ ] Una cookie emitida antes de la rotación devuelve `401` (cutover efectivo).
