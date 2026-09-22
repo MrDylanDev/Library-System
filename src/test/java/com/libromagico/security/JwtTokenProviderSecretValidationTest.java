@@ -48,6 +48,17 @@ class JwtTokenProviderSecretValidationTest {
     }
 
     @Test
+    @DisplayName("prod con secret en blanco o nula falla")
+    void prod_conSecretBlanca_falla() {
+        assertThrows(IllegalStateException.class, () -> new JwtTokenProvider(
+                "", 86400000L, prodEnv()));
+        assertThrows(IllegalStateException.class, () -> new JwtTokenProvider(
+                "   ", 86400000L, prodEnv()));
+        assertThrows(IllegalStateException.class, () -> new JwtTokenProvider(
+                null, 86400000L, prodEnv()));
+    }
+
+    @Test
     @DisplayName("dev con secret default no falla (fallback de desarrollo permitido)")
     void dev_conSecretDefault_noFalla() {
         assertDoesNotThrow(() -> new JwtTokenProvider(

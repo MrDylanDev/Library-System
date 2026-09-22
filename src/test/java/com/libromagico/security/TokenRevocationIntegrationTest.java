@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -45,6 +46,7 @@ class TokenRevocationIntegrationTest {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private TokenRevocadoRepository tokenRevocadoRepository;
     @Autowired private UsuarioService usuarioService;
+    @Autowired private javax.sql.DataSource dataSource;
 
     @BeforeEach
     void setUp() {
@@ -138,6 +140,25 @@ class TokenRevocationIntegrationTest {
         restaurado.setResetTokenHash(null);
         restaurado.setResetTokenExpiry(null);
         usuarioRepository.save(restaurado);
+    }
+
+    @Test
+    @DisplayName("V6 aplica indexes de tokens_revocados sin perder filas preexistentes")
+    void v6AplicaIndexesSinPerderFilas() {
+        var jdbc = new JdbcTemplate(dataSource);
+        Long aplicadas = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM \"flyway_schema_history\" WHERE \"version\" = '6' AND \"success\" = TRUE",
+                Long.class);
+        org.junit.jupiter.api.Assertions.assertTrue(aplicadas != null && aplicadas >= 1,
+                "flyway_schema_history debe contener V6 con success=true");
+
+        Long indexes = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.INDEXES "
+                        + "WHERE TABLE_NAME = 'TOKENS_REVOCADOS' AND INDEX_NAME IN "
+                        + "('IDX_TOKENS_REVOCADOS_EMAIL_EXPIRA', 'IDX_TOKENS_REVOCADOS_EXPIRA')",
+                Long.class);
+        org.junit.jupiter.api.Assertions.assertEquals(2L, indexes,
+                "ambos indexes V6 deben existir en TOKENS_REVOCADOS");
     }
 
     @Test
